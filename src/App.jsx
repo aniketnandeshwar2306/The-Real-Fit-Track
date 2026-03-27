@@ -6,6 +6,8 @@ import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Workouts from './pages/Workouts'
 import Nutrition from './pages/Nutrition'
+import Progress from './pages/Progress'
+import Community from './pages/Community'
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/workouts" element={<Workouts />} />
         <Route path="/nutrition" element={<Nutrition />} />
+        <Route path="/progress" element={<Progress />} />
+        <Route path="/community" element={<Community />} />
       </Routes>
     </FitTrackProvider>
   )

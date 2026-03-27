@@ -1,0 +1,95 @@
+/* Progress page styles */
+
+.progress-tabs { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
+.ptab { padding:8px 18px; border-radius:100px; background:var(--bg-card); border:1px solid var(--border); color:var(--text-dim); font-size:13px; font-family:var(--font-body); cursor:pointer; transition:all var(--transition); }
+.ptab:hover { border-color:var(--green-border); }
+.ptab.active { background:var(--green-bg); border-color:var(--green); color:var(--green); font-weight:600; }
+
+.prog-content { animation:fadeIn 0.3s ease; }
+
+/* Stats grid */
+.prog-stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+.prog-stat { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; transition:border-color var(--transition); }
+.prog-stat:hover { border-color:var(--green-border); }
+.ps-icon { font-size:28px; margin-bottom:8px; }
+.ps-value { font-family:var(--font-display); font-size:36px; color:var(--text-bright); letter-spacing:1px; line-height:1; }
+.ps-value span { font-size:18px; color:var(--text-dim); }
+.ps-label { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px; margin-top:6px; }
+
+/* Heatmap */
+.consistency-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
+.consistency-card h3 { font-family:var(--font-body); font-size:15px; font-weight:600; color:var(--text-bright); margin-bottom:16px; }
+.heatmap { display:grid; grid-template-columns:repeat(15,1fr); gap:4px; margin-bottom:12px; }
+.heatmap-cell { aspect-ratio:1; border-radius:4px; background:rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:center; transition:all var(--transition); cursor:default; position:relative; }
+.heatmap-cell.active { background:var(--green); box-shadow:0 0 8px rgba(170,255,0,0.25); }
+.hc-day { font-size:8px; color:var(--text-dimmer); }
+.heatmap-cell.active .hc-day { color:#0a0a0a; font-weight:700; }
+.heatmap-legend { display:flex; gap:16px; font-size:11px; color:var(--text-dim); }
+.hl-box { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:4px; vertical-align:middle; }
+.hl-box.rest { background:rgba(255,255,255,0.04); }
+.hl-box.worked { background:var(--green); }
+
+/* Weight */
+.weight-logger { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; margin-bottom:20px; }
+.weight-logger h3 { font-family:var(--font-body); font-size:15px; font-weight:600; color:var(--text-bright); margin-bottom:12px; }
+.wl-row { display:flex; gap:8px; align-items:center; }
+.wl-row input { flex:1; max-width:200px; padding:10px 14px; border-radius:var(--radius-md); background:var(--bg-input); border:1px solid var(--border-input); color:var(--text); font-size:16px; outline:none; }
+.wl-row input:focus { border-color:var(--green); }
+.wl-unit { font-size:14px; color:var(--text-dim); }
+
+.weight-chart-card,.calorie-chart-card,.activity-overview,.records-card,.badges-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; margin-bottom:20px; }
+.weight-chart-card h3,.calorie-chart-card h3,.activity-overview h3,.records-card h3,.badges-card h3 { font-family:var(--font-body); font-size:15px; font-weight:600; color:var(--text-bright); margin-bottom:16px; }
+
+/* Line chart */
+.line-chart { overflow-x:auto; }
+.lc-svg { width:100%; height:200px; min-width:400px; }
+.lc-range { display:flex; justify-content:space-between; font-size:11px; color:var(--text-dimmer); margin-top:4px; }
+
+/* Calorie bar chart */
+.cal-bar-chart,.steps-chart { display:flex; align-items:flex-end; gap:3px; height:180px; }
+.cbc-bar,.sc-bar { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; position:relative; }
+.cbc-fill,.sc-fill { width:100%; border-radius:3px 3px 0 0; transition:height 0.4s ease; min-height:2px; }
+.sc-fill { background:linear-gradient(180deg,#4488ff,#2266cc); }
+.cbc-label,.sc-label { font-size:8px; color:var(--text-dimmer); position:absolute; bottom:-14px; white-space:nowrap; }
+.cbc-target-line,.sc-goal { font-size:11px; color:var(--text-dim); margin-top:20px; text-align:center; }
+
+/* Calorie summary */
+.cal-summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.cs-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; }
+.cs-val { font-family:var(--font-display); font-size:32px; color:var(--text-bright); letter-spacing:1px; }
+.cs-lbl { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
+
+/* Personal records */
+.pr-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.pr-item { background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; text-align:center; }
+.pr-val { font-family:var(--font-display); font-size:28px; color:var(--green); letter-spacing:1px; }
+.pr-lbl { font-size:11px; color:var(--text-dim); margin-top:4px; text-transform:uppercase; letter-spacing:1px; }
+
+/* Badges */
+.badges-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.badge-item { display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-md); opacity:0.35; filter:grayscale(1); transition:all var(--transition); }
+.badge-item.unlocked { opacity:1; filter:none; border-color:var(--green-border); background:var(--green-bg); }
+.bi-icon { font-size:28px; }
+.bi-name { font-size:11px; color:var(--text-dim); font-weight:600; text-align:center; }
+.badge-item.unlocked .bi-name { color:var(--green); }
+
+/* Weight history */
+.weight-history { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
+.weight-history h3 { font-family:var(--font-body); font-size:15px; font-weight:600; color:var(--text-bright); margin-bottom:12px; }
+.wh-item { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.wh-item:last-child { border-bottom:none; }
+.wh-date { color:var(--text); }
+.wh-time { color:var(--text-dimmer); }
+.wh-weight { color:var(--green); font-weight:700; }
+
+@media(max-width:768px) {
+  .prog-stats-grid { grid-template-columns:repeat(2,1fr); }
+  .heatmap { grid-template-columns:repeat(10,1fr); }
+  .cal-summary-row { grid-template-columns:1fr; }
+  .pr-grid { grid-template-columns:1fr; }
+  .badges-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:480px) {
+  .prog-stats-grid { grid-template-columns:1fr; }
+  .badges-grid { grid-template-columns:1fr 1fr; }
+}

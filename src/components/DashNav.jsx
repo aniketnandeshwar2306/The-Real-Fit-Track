@@ -28,8 +28,8 @@ export default function DashNav() {
           <Link to="/dashboard" className={`nav-link ${path === '/dashboard' ? 'active' : ''}`}>Dashboard</Link>
           <Link to="/workouts" className={`nav-link ${path === '/workouts' ? 'active' : ''}`}>Workouts</Link>
           <Link to="/nutrition" className={`nav-link ${path === '/nutrition' ? 'active' : ''}`}>Nutrition</Link>
-          <Link to="#" className="nav-link">Progress</Link>
-          <Link to="#" className="nav-link">Community</Link>
+          <Link to="/progress" className={`nav-link ${path === '/progress' ? 'active' : ''}`}>Progress</Link>
+          <Link to="/community" className={`nav-link ${path === '/community' ? 'active' : ''}`}>Community</Link>
         </div>
         <div className="nav-quick">
           <Link to="/workouts" className="btn btn-outline btn-sm">Start Workout</Link>
