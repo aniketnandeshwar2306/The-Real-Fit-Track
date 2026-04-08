@@ -8,13 +8,35 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!form.username.trim()) return setError('Please enter username or email')
     if (!form.password) return setError('Please enter your password')
-    if (form.password.length < 6) return setError('Password must be at least 6 characters')
-    setError('')
-    navigate('/dashboard')
+
+    try {
+      setError('')
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login: form.username,
+          password: form.password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        return setError(data.message || 'Login failed')
+      }
+
+      // Store token and reload — this re-runs the context's useEffect
+      localStorage.setItem('fittrack_token', data.token)
+      window.location.href = '/dashboard'
+    } catch (err) {
+      setError('Could not connect to server. Is the backend running?')
+      console.error('Login error:', err)
+    }
   }
 
   return (

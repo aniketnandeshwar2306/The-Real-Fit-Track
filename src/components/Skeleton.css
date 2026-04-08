@@ -1,0 +1,65 @@
+/* Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Base Skeleton */
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 4px;
+}
+
+/* Shape Variants */
+.skeleton-line {
+  height: 16px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.skeleton-card {
+  height: 120px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.skeleton-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.skeleton-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .skeleton {
+    border-radius: 3px;
+  }
+
+  .skeleton-card {
+    height: 100px;
+    border-radius: 6px;
+  }
+}

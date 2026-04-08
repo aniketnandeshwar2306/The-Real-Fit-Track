@@ -22,9 +22,9 @@ export default function Workouts() {
   const weight = profile?.weight || 70
   const totalActivityHours = Object.values(activityHours).reduce((s, h) => s + (parseFloat(h) || 0), 0)
 
-  function handleLogSport() {
+  async function handleLogSport() {
     if (!selectedSport || !duration) return
-    const cal = addSport(selectedSport, parseInt(duration))
+    const cal = await addSport(selectedSport, parseInt(duration))
     setToast(`${selectedSport.name}: ${cal} cal burned! 🔥`)
     setSelectedSport(null)
     setDuration(30)

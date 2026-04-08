@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { useFitTrack } from '../context/FitTrackContext'
 
 export default function ProfileModal({ onClose }) {
-  const { profile, updateProfile } = useFitTrack()
-  const [form, setForm] = useState(profile || { name: '', age: '', weight: '', height: '', gender: 'male', activityLevel: 'moderate' })
+  const { profile, updateProfile, tdee } = useFitTrack()
+  const [form, setForm] = useState(profile || {
+    name: '', age: '', weight: '', height: '', gender: 'male', activityLevel: 'moderate',
+    waterGoal: 3000, calorieTarget: null, dailyWorkoutTarget: 1
+  })
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -65,6 +68,33 @@ export default function ProfileModal({ onClose }) {
               <option value="active">Active — Hard exercise 6-7 days/week</option>
               <option value="veryActive">Very Active — Intense daily exercise</option>
             </select>
+          </div>
+
+          {/* Goal Settings Section */}
+          <div className="modal-divider" style={{ margin: '20px 0', borderTop: '1px solid var(--border)' }} />
+          <div style={{ marginBottom: '15px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 15px 0', fontWeight: '600', textTransform: 'uppercase' }}>
+              📊 Goal Settings
+            </p>
+          </div>
+
+          <div className="modal-row">
+            <div className="modal-field">
+              <label>Daily Water Goal (ml)</label>
+              <input type="number" value={form.waterGoal} onChange={e => setForm({...form, waterGoal: parseFloat(e.target.value)})} placeholder="3000" min="500" max="10000" step="250" required />
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>Recommended: 3000 ml/day</p>
+            </div>
+            <div className="modal-field">
+              <label>Daily Workout Target</label>
+              <input type="number" value={form.dailyWorkoutTarget} onChange={e => setForm({...form, dailyWorkoutTarget: parseFloat(e.target.value)})} placeholder="1" min="0" max="10" step="0.5" required />
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>Workouts per day goal</p>
+            </div>
+          </div>
+
+          <div className="modal-field">
+            <label>Daily Calorie Target (kcal)</label>
+            <input type="number" value={form.calorieTarget || ''} onChange={e => setForm({...form, calorieTarget: e.target.value ? parseFloat(e.target.value) : null})} placeholder={`Leave blank for auto-TDEE (${tdee} cal)`} min="800" max="10000" step="50" />
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>Leave blank to auto-calculate from TDEE. Your TDEE: {tdee} cal</p>
           </div>
           <button type="submit" className="btn btn-primary modal-submit">
             {profile ? 'Update Profile' : 'Calculate My Calories'} →

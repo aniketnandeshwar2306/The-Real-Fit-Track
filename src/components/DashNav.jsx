@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useFitTrack } from '../context/FitTrackContext'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 export default function DashNav() {
-  const { profile } = useFitTrack()
+  const { profile, logout } = useFitTrack()
   const location = useLocation()
-  const initials = profile ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'FT'
+  const navigate = useNavigate()
+  const [showMenu, setShowMenu] = useState(false)
+  const name = profile?.name || 'User'
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const path = location.pathname
 
   return (
@@ -20,7 +24,27 @@ export default function DashNav() {
             🔔
             <span className="notif-badge">3</span>
           </div>
-          <div className="avatar" id="profile-btn">{initials}</div>
+          <div className="avatar-wrap" style={{ position: 'relative' }}>
+            <div className="avatar" id="profile-btn" onClick={() => setShowMenu(!showMenu)}>{initials}</div>
+            {showMenu && (
+              <div className="avatar-menu" style={{
+                position: 'absolute', right: 0, top: '110%', background: '#1a1a2e',
+                border: '1px solid rgba(170,255,0,0.2)', borderRadius: '8px',
+                padding: '8px 0', minWidth: '150px', zIndex: 100,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+              }}>
+                <div style={{ padding: '8px 16px', color: '#aaa', fontSize: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  {name}
+                </div>
+                <button onClick={() => { logout(); navigate('/login'); }} style={{
+                  width: '100%', padding: '10px 16px', background: 'none', border: 'none',
+                  color: '#ff4444', cursor: 'pointer', textAlign: 'left', fontSize: '14px'
+                }}>
+                  🚪 Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <nav className="dash-nav">

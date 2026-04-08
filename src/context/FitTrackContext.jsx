@@ -1,17 +1,38 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import { useToast } from './ToastContext'
 
 const FitTrackContext = createContext()
 
 const STORE_KEY = 'fittrack_data'
 
+// -----------------------------------------------
+//  Date helpers — LOCAL timezone (not UTC!)
+// -----------------------------------------------
+//
+//  WHY NOT toISOString().slice(0, 10)?
+//  toISOString() returns UTC time. In India (UTC+5:30),
+//  between 12:00 AM and 5:30 AM IST, the UTC date is
+//  the PREVIOUS day. This caused data to be stored under
+//  the wrong date when logging late at night.
+//
+//  Using getFullYear()/getMonth()/getDate() gives us
+//  the LOCAL date — the date the user sees on their clock.
+//
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function getYesterdayKey() {
   const d = new Date()
   d.setDate(d.getDate() - 1)
-  return d.toISOString().slice(0, 10)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const DEFAULT_WORKOUTS = [
@@ -95,15 +116,72 @@ function makeDayData() {
 }
 
 export function FitTrackProvider({ children }) {
-  const [data, setData] = useState(() => {
-    const raw = localStorage.getItem(STORE_KEY)
-    if (raw) return JSON.parse(raw)
-    return { profile: null, days: {} }
-  })
+  const [data, setData] = useState({ profile: null, days: {} })
+  const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState(null)
+  const { showToast } = useToast()
 
+  // Fetch initial profile and daily data
   useEffect(() => {
-    localStorage.setItem(STORE_KEY, JSON.stringify(data))
-  }, [data])
+    async function loadInitialData() {
+      const token = localStorage.getItem('fittrack_token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        // 1. Fetch User Profile
+        const profileRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const profileData = await profileRes.json()
+
+        if (!profileData.success) {
+          throw new Error(profileData.message)
+        }
+
+        // 2. Fetch ALL of today's data in one request
+        const todayRes = await fetch(`${import.meta.env.VITE_API_URL}/today`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const todayData = await todayRes.json()
+
+        if (!todayData.success) {
+          throw new Error(todayData.message)
+        }
+        
+        const dateKey = getTodayKey()
+
+        setData({
+          profile: { ...profileData.user.profile, name: profileData.user.username },
+          days: {
+            [dateKey]: {
+              caloriesConsumed: todayData.caloriesConsumed || 0,
+              meals: todayData.meals || [],
+              waterMl: todayData.waterMl || 0,
+              workouts: todayData.workouts || [],
+              workoutsCompleted: todayData.workoutsCompleted || 0,
+              sports: todayData.sports || [],
+              activities: todayData.activities || [],
+            }
+          }
+        })
+      } catch (err) {
+        console.error('Failed to load initial data:', err)
+        setAuthError(err.message)
+        // If token is invalid, clear it
+        if (err.message.includes('token') || err.message.includes('auth')) {
+          localStorage.removeItem('fittrack_token')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadInitialData()
+  }, [])
 
   function getDayData(dateKey) {
     return data.days[dateKey] || null
@@ -124,97 +202,318 @@ export function FitTrackProvider({ children }) {
     })
   }
 
-  function updateProfile(profile) {
-    setData(prev => ({ ...prev, profile }))
+  async function updateProfile(profile) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profile)
+      })
+      const data = await response.json()
+      if (data.success) {
+        setData(prev => ({ ...prev, profile: data.profile }))
+        showToast('Profile updated successfully', 'success')
+      } else {
+        showToast(data.message || 'Failed to update profile', 'error')
+      }
+    } catch (err) {
+      console.error('Update profile error:', err)
+      showToast('Could not update profile', 'error')
+    }
   }
 
-  function toggleWorkout(index) {
-    updateTodayData(today => {
-      const workouts = today.workouts.map((w, i) =>
-        i === index ? { ...w, done: !w.done } : w
-      )
-      return { ...today, workouts, workoutsCompleted: workouts.filter(w => w.done).length }
-    })
+  async function toggleWorkout(index) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${index}/toggle`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData({
+          ...getTodayData(),
+          workouts: resData.workouts,
+          workoutsCompleted: resData.workoutsCompleted
+        })
+        showToast('Workout toggled', 'success')
+      } else {
+        showToast(resData.message || 'Failed to toggle workout', 'error')
+      }
+    } catch (err) {
+      console.error('Toggle workout error:', err)
+      showToast('Could not toggle workout', 'error')
+    }
   }
 
   // Update a specific workout's weight
-  function updateWorkoutWeight(index, newWeight) {
-    updateTodayData(today => {
-      const workouts = today.workouts.map((w, i) =>
-        i === index ? { ...w, weight: newWeight } : w
-      )
-      return { ...today, workouts }
-    })
+  async function updateWorkoutWeight(index, newWeight) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${index}/weight`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ weight: newWeight })
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => {
+          const workouts = today.workouts.map((w, i) =>
+            i === index ? { ...w, weight: newWeight } : w
+          )
+          return { ...today, workouts }
+        })
+        showToast('Weight updated', 'success')
+      } else {
+        showToast(resData.message || 'Failed to update weight', 'error')
+      }
+    } catch (err) {
+      console.error('Update weight error:', err)
+      showToast('Could not update weight', 'error')
+    }
   }
 
   // Add a custom exercise to today's plan
-  function addCustomWorkout(exercise) {
-    updateTodayData(today => ({
-      ...today,
-      workouts: [...today.workouts, { ...exercise, done: false }],
-    }))
+  async function addCustomWorkout(exercise) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(exercise)
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          workouts: resData.workouts
+        }))
+        showToast('Workout added', 'success')
+      } else {
+        showToast(resData.message || 'Failed to add workout', 'error')
+      }
+    } catch (err) {
+      console.error('Add workout error:', err)
+      showToast('Could not add workout', 'error')
+    }
   }
 
   // Remove a workout from today's plan
-  function removeWorkout(index) {
-    updateTodayData(today => ({
-      ...today,
-      workouts: today.workouts.filter((_, i) => i !== index),
-    }))
+  async function removeWorkout(index) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${index}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          workouts: resData.workouts,
+          workoutsCompleted: resData.workoutsCompleted
+        }))
+        showToast('Workout removed', 'success')
+      } else {
+        showToast(resData.message || 'Failed to remove workout', 'error')
+      }
+    } catch (err) {
+      console.error('Remove workout error:', err)
+      showToast('Could not remove workout', 'error')
+    }
   }
 
   // Replace entire workout list (for loading a plan)
-  function setTodayWorkouts(workouts) {
-    updateTodayData(today => ({
-      ...today,
-      workouts: workouts.map(w => ({ ...w, done: false })),
-      workoutsCompleted: 0,
-    }))
+  async function setTodayWorkouts(workouts) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts/plan`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ workouts })
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          workouts: resData.workouts,
+          workoutsCompleted: 0,
+        }))
+        showToast('Workout plan loaded', 'success')
+      } else {
+        showToast(resData.message || 'Failed to load workout plan', 'error')
+      }
+    } catch (err) {
+      console.error('Set plan error:', err)
+      showToast('Could not load workout plan', 'error')
+    }
   }
 
-  function addMeal(name, calories) {
-    const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-    updateTodayData(today => ({
-      ...today,
-      meals: [...today.meals, { name, calories, time }],
-      caloriesConsumed: today.caloriesConsumed + calories,
-    }))
+  async function addMeal(name, calories) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/meals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, calories })
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          meals: resData.meals,
+          caloriesConsumed: resData.caloriesConsumed,
+        }))
+        showToast('Meal added', 'success')
+      } else {
+        showToast(resData.message || 'Failed to add meal', 'error')
+      }
+    } catch (err) {
+      console.error('Add meal error:', err)
+      showToast('Could not add meal', 'error')
+    }
   }
 
-  function addWater(ml) {
-    updateTodayData(today => ({
-      ...today,
-      waterMl: Math.min(today.waterMl + ml, 5000),
-    }))
+  async function addWater(ml) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/water`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ml })
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          waterMl: resData.waterMl,
+        }))
+        showToast('Water added', 'success')
+      } else {
+        showToast(resData.message || 'Failed to add water', 'error')
+      }
+    } catch (err) {
+      console.error('Add water error:', err)
+      showToast('Could not add water', 'error')
+    }
   }
 
-  function addSport(sport, durationMinutes) {
-    const weight = data.profile?.weight || 70
-    const calories = calcMETCalories(sport.met, weight, durationMinutes)
-    updateTodayData(today => ({
-      ...today,
-      sports: [...(today.sports || []), {
-        name: sport.name,
-        icon: sport.icon,
-        met: sport.met,
-        duration: durationMinutes,
-        calories,
-        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-      }],
-    }))
-    return calories
+  async function addSport(sport, durationMinutes) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/sports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: sport.name,
+          icon: sport.icon,
+          met: sport.met,
+          duration: durationMinutes
+        })
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          sports: resData.totalSports
+        }))
+        showToast(`${sport.name} added (${resData.sport.calories} cal)`, 'success')
+        return resData.sport.calories
+      } else {
+        showToast(resData.message || 'Failed to add sport', 'error')
+      }
+    } catch (err) {
+      console.error('Add sport error:', err)
+      showToast('Could not add sport', 'error')
+    }
+    return 0
   }
 
-  function setDailyActivities(activities) {
-    const weight = data.profile?.weight || 70
-    const withCalories = activities.map(a => ({
-      ...a,
-      calories: calcMETCalories(a.met, weight, a.hours * 60),
-    }))
-    updateTodayData(today => ({
-      ...today,
-      activities: withCalories,
-    }))
+  async function fetchProgressHistory(limit = 30) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return {}
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/progress?limit=${limit}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        return resData.days || {}
+      }
+    } catch (err) {
+      console.error('Fetch progress error:', err)
+    }
+    return {}
+  }
+
+  async function setDailyActivities(activities) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/activities`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ activities })
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          activities: resData.activities
+        }))
+        showToast('Activities updated', 'success')
+      } else {
+        showToast(resData.message || 'Failed to update activities', 'error')
+      }
+    } catch (err) {
+      console.error('Set activities error:', err)
+      showToast('Could not update activities', 'error')
+    }
   }
 
   const profile = data.profile
@@ -228,7 +527,34 @@ export function FitTrackProvider({ children }) {
   const activityCalories = (today.activities || []).reduce((s, a) => s + a.calories, 0)
   const caloriesBurned = workoutCalories + sportsCalories + activityCalories
 
-  const value = {
+  // Logout: clear token and reset state (no full page reload!)
+  //
+  // WHY NOT window.location.href?
+  // Using window.location.href = '/' causes a FULL page reload,
+  // which destroys all React state and re-downloads everything.
+  // Instead, we clear the token and reset state. The ProtectedRoute
+  // in App.jsx will automatically redirect to /login.
+  //
+  const logout = useCallback(() => {
+    localStorage.removeItem('fittrack_token')
+    setData({ profile: null, days: {} })
+    // Navigate is handled by the component that calls logout
+  }, [])
+
+  // -----------------------------------------------
+  //  Memoize the context value
+  // -----------------------------------------------
+  //
+  //  WHY useMemo?
+  //  Without useMemo, the value object is recreated on EVERY render,
+  //  even if no data changed. Since objects are compared by reference
+  //  in React, every consumer of this context would re-render
+  //  every time — even if they only use 'profile' and it didn't change.
+  //
+  //  useMemo ensures the value object only changes when the actual
+  //  data it depends on changes.
+  //
+  const value = useMemo(() => ({
     profile,
     today,
     yesterday,
@@ -239,6 +565,9 @@ export function FitTrackProvider({ children }) {
     workoutCalories,
     sportsCalories,
     activityCalories,
+    loading,
+    authError,
+    logout,
     updateProfile,
     toggleWorkout,
     updateWorkoutWeight,
@@ -249,9 +578,14 @@ export function FitTrackProvider({ children }) {
     addWater,
     addSport,
     setDailyActivities,
+    fetchProgressHistory,
     calculateBMR,
     calculateTDEE,
-  }
+  }), [
+    profile, today, yesterday, allDays, bmr, tdee,
+    caloriesBurned, workoutCalories, sportsCalories, activityCalories,
+    loading, authError, logout,
+  ])
 
   return <FitTrackContext.Provider value={value}>{children}</FitTrackContext.Provider>
 }

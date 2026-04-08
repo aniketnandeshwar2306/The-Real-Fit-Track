@@ -22,13 +22,33 @@ export default function Signup() {
   const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
   const strengthColors = ['', '#ff4444', '#ff8800', '#ffaa00', '#88cc00', '#AAFF00']
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (form.username.length < 3) return setError('Username must be at least 3 characters')
     if (!/\S+@\S+\.\S+/.test(form.email)) return setError('Please enter a valid email')
     if (form.password.length < 6) return setError('Password must be at least 6 characters')
-    setError('')
-    navigate('/dashboard')
+
+    try {
+      setError('')
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        return setError(data.message || 'Signup failed')
+      }
+
+      // Store token and reload — this re-runs the context's useEffect
+      localStorage.setItem('fittrack_token', data.token)
+      window.location.href = '/dashboard'
+    } catch (err) {
+      setError('Could not connect to server. Is the backend running?')
+      console.error('Signup error:', err)
+    }
   }
 
   return (
