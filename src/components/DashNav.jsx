@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useFitTrack } from '../context/FitTrackContext'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-export default function DashNav() {
+export default function DashNav({ onProfileClick }) {
   const { profile, logout } = useFitTrack()
   const location = useLocation()
   const navigate = useNavigate()
@@ -36,6 +36,12 @@ export default function DashNav() {
                 <div style={{ padding: '8px 16px', color: '#aaa', fontSize: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                   {name}
                 </div>
+                <button onClick={() => { onProfileClick?.(); setShowMenu(false); }} style={{
+                  width: '100%', padding: '10px 16px', background: 'none', border: 'none',
+                  color: '#AAFF00', cursor: 'pointer', textAlign: 'left', fontSize: '14px'
+                }}>
+                  👤 View Profile
+                </button>
                 <button onClick={() => { logout(); navigate('/login'); }} style={{
                   width: '100%', padding: '10px 16px', background: 'none', border: 'none',
                   color: '#ff4444', cursor: 'pointer', textAlign: 'left', fontSize: '14px'

@@ -23,15 +23,6 @@ const { validateWorkout, validateWorkoutPlan } = require('../middleware/validate
 const { getTodayKey } = require('../utils/dateHelper')
 const asyncHandler = require('../utils/asyncHandler')
 
-// Default workouts — same as the frontend
-const DEFAULT_WORKOUTS = [
-  { name: 'Bench Press', sets: '4 × 10 reps', weight: '70kg', done: false, calories: 120 },
-  { name: 'Overhead Press', sets: '3 × 12 reps', weight: '35kg', done: false, calories: 90 },
-  { name: 'Incline Dumbbell Press', sets: '3 × 12 reps', weight: '22kg', done: false, calories: 85 },
-  { name: 'Tricep Dips', sets: '3 × 15 reps', weight: 'bodyweight', done: false, calories: 70 },
-  { name: 'Lateral Raises', sets: '4 × 15 reps', weight: '10kg', done: false, calories: 55 },
-]
-
 /**
  * getOrCreateToday — Finds or creates today's DayData document
  *
@@ -56,7 +47,7 @@ async function getOrCreateToday(userId) {
         caloriesConsumed: 0,
         meals: [],
         waterMl: 0,
-        workouts: DEFAULT_WORKOUTS,
+        workouts: [],
         workoutsCompleted: 0,
         sports: [],
         activities: [],

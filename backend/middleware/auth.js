@@ -29,6 +29,7 @@
 
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
+const AppError = require('../utils/AppError')
 
 /**
  * protect — Middleware that checks if the user is authenticated.
@@ -47,53 +48,47 @@ const User = require('../models/User')
 async function protect(req, res, next) {
   try {
     // Step 1: Get the Authorization header
-    // Headers look like: { Authorization: "Bearer eyJhbGciOiJI..." }
     const authHeader = req.headers.authorization
 
     // Check if header exists AND starts with "Bearer"
     if (!authHeader || !authHeader.startsWith('Bearer')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized — no token provided. Send token in Authorization header as: Bearer <token>',
-      })
+      return next(
+        new AppError(
+          'Not authorized — no token provided. Send token in Authorization header as: Bearer <token>',
+          401,
+          'NO_TOKEN'
+        )
+      )
     }
 
     // Step 2: Extract the token (remove "Bearer " prefix)
     const token = authHeader.split(' ')[1]
 
     // Step 3: Verify the token
-    // jwt.verify() checks:
-    //   - Is the token valid? (not expired, not tampered with)
-    //   - Was it signed with our secret key?
-    // If invalid, it throws an error (caught by the catch block)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    // decoded = { userId: "abc123", iat: 1234567890, exp: 9876543210 }
+    let decoded
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET)
+    } catch (jwtError) {
+      if (jwtError.name === 'TokenExpiredError') {
+        return next(new AppError('Token expired', 401, 'TOKEN_EXPIRED'))
+      }
+      return next(new AppError('Invalid token', 401, 'INVALID_TOKEN'))
+    }
 
     // Step 4: Find the user in the database
-    // .select('-password') means "return everything EXCEPT the password"
-    // We don't want to carry the password hash around unnecessarily
     const user = await User.findById(decoded.userId).select('-password')
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized — user not found',
-      })
+      return next(new AppError('User not found', 401, 'USER_NOT_FOUND'))
     }
 
     // Step 5: Attach user to the request object
-    // Now any route handler after this middleware can access req.user
     req.user = user
 
     // Call next() to pass control to the next middleware/route handler
     next()
-
   } catch (error) {
-    console.error('Auth middleware error:', error.message)
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized — invalid token',
-    })
+    next(error)
   }
 }
 

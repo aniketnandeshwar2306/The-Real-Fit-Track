@@ -5,8 +5,19 @@ export default function ProfileModal({ onClose }) {
   const { profile, updateProfile, tdee } = useFitTrack()
   const [form, setForm] = useState(profile || {
     name: '', age: '', weight: '', height: '', gender: 'male', activityLevel: 'moderate',
-    waterGoal: 3000, calorieTarget: null, dailyWorkoutTarget: 1
+    goal: 'maintain', waterGoal: 3000, dailyWorkoutTarget: 1
   })
+
+  // Calculate recommended calorie target based on goal
+  const getCalorieTarget = () => {
+    if (!tdee) return null
+    switch(form.goal) {
+      case 'lose': return Math.round(tdee - 500)  // 500 cal deficit
+      case 'gain': return Math.round(tdee + 500)  // 500 cal surplus
+      case 'maintain':
+      default: return tdee
+    }
+  }
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -15,6 +26,7 @@ export default function ProfileModal({ onClose }) {
       age: parseInt(form.age),
       weight: parseFloat(form.weight),
       height: parseFloat(form.height),
+      calorieTarget: getCalorieTarget()
     })
     onClose()
   }
@@ -70,6 +82,33 @@ export default function ProfileModal({ onClose }) {
             </select>
           </div>
 
+          {/* Fitness Goal */}
+          <div className="modal-field">
+            <label>What's Your Goal?</label>
+            <div className="radio-group">
+              <label className="radio-label">
+                <input type="radio" checked={form.goal === 'lose'} onChange={() => setForm({...form, goal: 'lose'})} />
+                <span className="radio-btn">💪 Lose Weight</span>
+              </label>
+              <label className="radio-label">
+                <input type="radio" checked={form.goal === 'maintain'} onChange={() => setForm({...form, goal: 'maintain'})} />
+                <span className="radio-btn">⚖️ Maintain</span>
+              </label>
+              <label className="radio-label">
+                <input type="radio" checked={form.goal === 'gain'} onChange={() => setForm({...form, goal: 'gain'})} />
+                <span className="radio-btn">🏋️ Gain Weight</span>
+              </label>
+            </div>
+            {tdee && (
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                📊 Recommended Daily Calories: <strong>{getCalorieTarget()}</strong> cal
+                {form.goal === 'lose' && ' (500 cal deficit for ~0.5 kg/week loss)'}
+                {form.goal === 'gain' && ' (500 cal surplus for ~0.5 kg/week gain)'}
+                {form.goal === 'maintain' && ' (maintenance)'}
+              </p>
+            )}
+          </div>
+
           {/* Goal Settings Section */}
           <div className="modal-divider" style={{ margin: '20px 0', borderTop: '1px solid var(--border)' }} />
           <div style={{ marginBottom: '15px' }}>
@@ -91,11 +130,6 @@ export default function ProfileModal({ onClose }) {
             </div>
           </div>
 
-          <div className="modal-field">
-            <label>Daily Calorie Target (kcal)</label>
-            <input type="number" value={form.calorieTarget || ''} onChange={e => setForm({...form, calorieTarget: e.target.value ? parseFloat(e.target.value) : null})} placeholder={`Leave blank for auto-TDEE (${tdee} cal)`} min="800" max="10000" step="50" />
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>Leave blank to auto-calculate from TDEE. Your TDEE: {tdee} cal</p>
-          </div>
           <button type="submit" className="btn btn-primary modal-submit">
             {profile ? 'Update Profile' : 'Calculate My Calories'} →
           </button>

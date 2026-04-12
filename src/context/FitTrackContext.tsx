@@ -1,24 +1,102 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  ReactNode,
+  FC,
+} from 'react'
 import { useToast } from './ToastContext'
 
-const FitTrackContext = createContext()
+interface Profile {
+  name: string
+  age: number
+  gender: 'male' | 'female'
+  weight: number
+  height: number
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'veryActive'
+}
 
-const STORE_KEY = 'fittrack_data'
+interface Workout {
+  name: string
+  sets: number
+  reps: number
+  weight: number
+  calories: number
+  done: boolean
+}
 
-// -----------------------------------------------
-//  Date helpers — LOCAL timezone (not UTC!)
-// -----------------------------------------------
-//
-//  WHY NOT toISOString().slice(0, 10)?
-//  toISOString() returns UTC time. In India (UTC+5:30),
-//  between 12:00 AM and 5:30 AM IST, the UTC date is
-//  the PREVIOUS day. This caused data to be stored under
-//  the wrong date when logging late at night.
-//
-//  Using getFullYear()/getMonth()/getDate() gives us
-//  the LOCAL date — the date the user sees on their clock.
-//
-function getTodayKey() {
+interface Meal {
+  id: string
+  name: string
+  calories: number
+  timestamp: string
+}
+
+interface Sport {
+  name: string
+  icon: string
+  met: number
+  duration: number
+  calories: number
+}
+
+interface Activity {
+  name: string
+  icon: string
+  met: number
+  color: string
+  calories: number
+}
+
+export interface DayData {
+  caloriesConsumed: number
+  meals: Meal[]
+  waterMl: number
+  workouts: Workout[]
+  workoutsCompleted: number
+  sports: Sport[]
+  activities: Activity[]
+}
+
+interface FitTrackContextType {
+  profile: Profile | null
+  today: DayData
+  yesterday: DayData | null
+  allDays: Record<string, DayData>
+  bmr: number
+  tdee: number
+  caloriesBurned: number
+  workoutCalories: number
+  sportsCalories: number
+  activityCalories: number
+  loading: boolean
+  authError: string | null
+  logout: () => void
+  updateProfile: (profile: Profile) => Promise<void>
+  toggleWorkout: (index: number) => Promise<void>
+  updateWorkoutWeight: (index: number, newWeight: number) => Promise<void>
+  addCustomWorkout: (exercise: Workout) => Promise<void>
+  removeWorkout: (index: number) => Promise<void>
+  setTodayWorkouts: (workouts: Workout[]) => Promise<void>
+  addMeal: (name: string, calories: number) => Promise<void>
+  addWater: (ml: number) => Promise<void>
+  addSport: (
+    sport: { name: string; icon: string; met: number },
+    durationMinutes: number
+  ) => Promise<number>
+  setDailyActivities: (activities: Activity[]) => Promise<void>
+  fetchProgressHistory: (limit?: number) => Promise<Record<string, DayData>>
+  calculateBMR: (profile: Profile) => number
+  calculateTDEE: (profile: Profile) => number
+}
+
+const FitTrackContext = createContext<FitTrackContextType | undefined>(undefined)
+
+// Date helpers — LOCAL timezone (not UTC!)
+function getTodayKey(): string {
   const d = new Date()
   const year = d.getFullYear()
   const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -26,7 +104,7 @@ function getTodayKey() {
   return `${year}-${month}-${day}`
 }
 
-function getYesterdayKey() {
+function getYesterdayKey(): string {
   const d = new Date()
   d.setDate(d.getDate() - 1)
   const year = d.getFullYear()
@@ -35,8 +113,15 @@ function getYesterdayKey() {
   return `${year}-${month}-${day}`
 }
 
+interface ActivityMultipliers {
+  sedentary: number
+  light: number
+  moderate: number
+  active: number
+  veryActive: number
+}
 
-const ACTIVITY_MULTIPLIERS = {
+const ACTIVITY_MULTIPLIERS: ActivityMultipliers = {
   sedentary: 1.2,
   light: 1.375,
   moderate: 1.55,
@@ -45,58 +130,124 @@ const ACTIVITY_MULTIPLIERS = {
 }
 
 // MET values for sports and daily activities
-export const SPORTS_MET = [
-  { name: 'Cricket', met: 5.0, icon: '🏏', category: 'sports' },
-  { name: 'Football / Soccer', met: 7.0, icon: '⚽', category: 'sports' },
-  { name: 'Basketball', met: 6.5, icon: '🏀', category: 'sports' },
-  { name: 'Badminton', met: 5.5, icon: '🏸', category: 'sports' },
-  { name: 'Tennis', met: 7.3, icon: '🎾', category: 'sports' },
-  { name: 'Table Tennis', met: 4.0, icon: '🏓', category: 'sports' },
-  { name: 'Volleyball', met: 4.0, icon: '🏐', category: 'sports' },
-  { name: 'Swimming', met: 6.0, icon: '🏊', category: 'sports' },
-  { name: 'Cycling', met: 7.5, icon: '🚴', category: 'sports' },
-  { name: 'Running (8 km/h)', met: 8.3, icon: '🏃', category: 'sports' },
-  { name: 'Running (10 km/h)', met: 10.0, icon: '🏃‍♂️', category: 'sports' },
-  { name: 'Skipping Rope', met: 11.0, icon: '🪢', category: 'sports' },
-  { name: 'Boxing / Martial Arts', met: 7.8, icon: '🥊', category: 'sports' },
-  { name: 'Yoga', met: 2.5, icon: '🧘', category: 'sports' },
-  { name: 'Dancing', met: 5.0, icon: '💃', category: 'sports' },
-  { name: 'Hiking', met: 6.0, icon: '🥾', category: 'sports' },
-  { name: 'Kabaddi', met: 7.0, icon: '🤼', category: 'sports' },
-  { name: 'Hockey', met: 8.0, icon: '🏑', category: 'sports' },
+export const SPORTS_MET: Sport[] = [
+  { name: 'Cricket', met: 5.0, icon: '🏏', duration: 0, calories: 0 },
+  {
+    name: 'Football / Soccer',
+    met: 7.0,
+    icon: '⚽',
+    duration: 0,
+    calories: 0,
+  },
+  { name: 'Basketball', met: 6.5, icon: '🏀', duration: 0, calories: 0 },
+  { name: 'Badminton', met: 5.5, icon: '🏸', duration: 0, calories: 0 },
+  { name: 'Tennis', met: 7.3, icon: '🎾', duration: 0, calories: 0 },
+  { name: 'Table Tennis', met: 4.0, icon: '🏓', duration: 0, calories: 0 },
+  { name: 'Volleyball', met: 4.0, icon: '🏐', duration: 0, calories: 0 },
+  { name: 'Swimming', met: 6.0, icon: '🏊', duration: 0, calories: 0 },
+  { name: 'Cycling', met: 7.5, icon: '🚴', duration: 0, calories: 0 },
+  {
+    name: 'Running (8 km/h)',
+    met: 8.3,
+    icon: '🏃',
+    duration: 0,
+    calories: 0,
+  },
+  {
+    name: 'Running (10 km/h)',
+    met: 10.0,
+    icon: '🏃‍♂️',
+    duration: 0,
+    calories: 0,
+  },
+  {
+    name: 'Skipping Rope',
+    met: 11.0,
+    icon: '🪢',
+    duration: 0,
+    calories: 0,
+  },
+  {
+    name: 'Boxing / Martial Arts',
+    met: 7.8,
+    icon: '🥊',
+    duration: 0,
+    calories: 0,
+  },
+  { name: 'Yoga', met: 2.5, icon: '🧘', duration: 0, calories: 0 },
+  { name: 'Dancing', met: 5.0, icon: '💃', duration: 0, calories: 0 },
+  { name: 'Hiking', met: 6.0, icon: '🥾', duration: 0, calories: 0 },
+  { name: 'Kabaddi', met: 7.0, icon: '🤼', duration: 0, calories: 0 },
+  { name: 'Hockey', met: 8.0, icon: '🏑', duration: 0, calories: 0 },
 ]
 
-export const DAILY_ACTIVITIES = [
-  { name: 'Sleeping', met: 0.95, icon: '😴', color: '#6366f1' },
-  { name: 'Resting in Bed', met: 1.0, icon: '🛌', color: '#8b5cf6' },
-  { name: 'Sitting (Working/Studying)', met: 1.3, icon: '💺', color: '#f59e0b' },
-  { name: 'Standing', met: 1.8, icon: '🧍', color: '#f97316' },
-  { name: 'Slow Walking', met: 2.5, icon: '🚶', color: '#22c55e' },
-  { name: 'Brisk Walking', met: 3.8, icon: '🚶‍♂️', color: '#10b981' },
-  { name: 'Cooking', met: 2.5, icon: '🍳', color: '#ef4444' },
-  { name: 'Cleaning / Chores', met: 3.5, icon: '🧹', color: '#ec4899' },
-  { name: 'Driving', met: 2.0, icon: '🚗', color: '#3b82f6' },
-  { name: 'Light Exercise', met: 3.5, icon: '🤸', color: '#AAFF00' },
+export const DAILY_ACTIVITIES: Activity[] = [
+  { name: 'Sleeping', icon: '😴', met: 0.95, color: '#6366f1', calories: 0 },
+  {
+    name: 'Resting in Bed',
+    icon: '🛌',
+    met: 1.0,
+    color: '#8b5cf6',
+    calories: 0,
+  },
+  {
+    name: 'Sitting (Working/Studying)',
+    icon: '💺',
+    met: 1.3,
+    color: '#f59e0b',
+    calories: 0,
+  },
+  { name: 'Standing', icon: '🧍', met: 1.8, color: '#f97316', calories: 0 },
+  {
+    name: 'Slow Walking',
+    icon: '🚶',
+    met: 2.5,
+    color: '#22c55e',
+    calories: 0,
+  },
+  {
+    name: 'Brisk Walking',
+    icon: '🚶‍♂️',
+    met: 3.8,
+    color: '#10b981',
+    calories: 0,
+  },
+  { name: 'Cooking', icon: '🍳', met: 2.5, color: '#ef4444', calories: 0 },
+  {
+    name: 'Cleaning / Chores',
+    icon: '🧹',
+    met: 3.5,
+    color: '#ec4899',
+    calories: 0,
+  },
+  { name: 'Driving', icon: '🚗', met: 2.0, color: '#3b82f6', calories: 0 },
+  {
+    name: 'Light Exercise',
+    icon: '🤸',
+    met: 3.5,
+    color: '#AAFF00',
+    calories: 0,
+  },
 ]
 
-function calculateBMR(profile) {
+function calculateBMR(profile: Profile): number {
   const { weight, height, age, gender } = profile
   return gender === 'male'
     ? Math.round(10 * weight + 6.25 * height - 5 * age + 5)
     : Math.round(10 * weight + 6.25 * height - 5 * age - 161)
 }
 
-function calculateTDEE(profile) {
+function calculateTDEE(profile: Profile): number {
   const bmr = calculateBMR(profile)
   const multiplier = ACTIVITY_MULTIPLIERS[profile.activityLevel] || 1.55
   return Math.round(bmr * multiplier)
 }
 
-export function calcMETCalories(met, weightKg, durationMinutes) {
-  return Math.round(met * weightKg * (durationMinutes / 60))
+export function calcMETCalories(met: number, weightKg: number, durationMinutes: number): number {
+  return Math.round((met * weightKg * durationMinutes) / 60)
 }
 
-function makeDayData() {
+function makeDayData(): DayData {
   return {
     caloriesConsumed: 0,
     meals: [],
@@ -108,10 +259,17 @@ function makeDayData() {
   }
 }
 
-export function FitTrackProvider({ children }) {
-  const [data, setData] = useState({ profile: null, days: {} })
+interface FitTrackProviderProps {
+  children: ReactNode
+}
+
+export const FitTrackProvider: FC<FitTrackProviderProps> = ({ children }) => {
+  const [data, setData] = useState({
+    profile: null as Profile | null,
+    days: {} as Record<string, DayData>,
+  })
   const [loading, setLoading] = useState(true)
-  const [authError, setAuthError] = useState(null)
+  const [authError, setAuthError] = useState<string | null>(null)
   const { showToast } = useToast()
 
   // Fetch initial profile and daily data
@@ -127,7 +285,7 @@ export function FitTrackProvider({ children }) {
         setLoading(true)
         // 1. Fetch User Profile
         const profileRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         })
         const profileData = await profileRes.json()
 
@@ -137,18 +295,21 @@ export function FitTrackProvider({ children }) {
 
         // 2. Fetch ALL of today's data in one request
         const todayRes = await fetch(`${import.meta.env.VITE_API_URL}/today`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         })
         const todayData = await todayRes.json()
 
         if (!todayData.success) {
           throw new Error(todayData.message)
         }
-        
+
         const dateKey = getTodayKey()
 
         setData({
-          profile: { ...profileData.user.profile, name: profileData.user.username },
+          profile: {
+            ...profileData.user.profile,
+            name: profileData.user.username,
+          },
           days: {
             [dateKey]: {
               caloriesConsumed: todayData.caloriesConsumed || 0,
@@ -158,14 +319,15 @@ export function FitTrackProvider({ children }) {
               workoutsCompleted: todayData.workoutsCompleted || 0,
               sports: todayData.sports || [],
               activities: todayData.activities || [],
-            }
-          }
+            },
+          },
         })
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         console.error('Failed to load initial data:', err)
-        setAuthError(err.message)
+        setAuthError(errorMessage)
         // If token is invalid, clear it
-        if (err.message.includes('token') || err.message.includes('auth')) {
+        if (errorMessage.includes('token') || errorMessage.includes('auth')) {
           localStorage.removeItem('fittrack_token')
         }
       } finally {
@@ -176,26 +338,26 @@ export function FitTrackProvider({ children }) {
     loadInitialData()
   }, [])
 
-  function getDayData(dateKey) {
+  function getDayData(dateKey: string): DayData | null {
     return data.days[dateKey] || null
   }
 
-  function getTodayData() {
+  function getTodayData(): DayData {
     const key = getTodayKey()
     if (data.days[key]) return data.days[key]
     return makeDayData()
   }
 
-  function updateTodayData(updater) {
+  function updateTodayData(updater: DayData | ((prev: DayData) => DayData)): void {
     const key = getTodayKey()
-    setData(prev => {
+    setData((prev) => {
       const today = prev.days[key] || makeDayData()
       const updated = typeof updater === 'function' ? updater(today) : updater
       return { ...prev, days: { ...prev.days, [key]: updated } }
     })
   }
 
-  async function updateProfile(profile) {
+  async function updateProfile(profile: Profile): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -204,16 +366,16 @@ export function FitTrackProvider({ children }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(profile)
+        body: JSON.stringify(profile),
       })
-      const data = await response.json()
-      if (data.success) {
-        setData(prev => ({ ...prev, profile: data.profile }))
+      const resData = await response.json()
+      if (resData.success) {
+        setData((prev) => ({ ...prev, profile: resData.profile }))
         showToast('Profile updated successfully', 'success')
       } else {
-        showToast(data.message || 'Failed to update profile', 'error')
+        showToast(resData.message || 'Failed to update profile', 'error')
       }
     } catch (err) {
       console.error('Update profile error:', err)
@@ -221,21 +383,21 @@ export function FitTrackProvider({ children }) {
     }
   }
 
-  async function toggleWorkout(index) {
+  async function toggleWorkout(index: number): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${index}/toggle`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       })
       const resData = await response.json()
       if (resData.success) {
         updateTodayData({
           ...getTodayData(),
           workouts: resData.workouts,
-          workoutsCompleted: resData.workoutsCompleted
+          workoutsCompleted: resData.workoutsCompleted,
         })
         showToast('Workout toggled', 'success')
       } else {
@@ -248,7 +410,7 @@ export function FitTrackProvider({ children }) {
   }
 
   // Update a specific workout's weight
-  async function updateWorkoutWeight(index, newWeight) {
+  async function updateWorkoutWeight(index: number, newWeight: number): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -257,13 +419,13 @@ export function FitTrackProvider({ children }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ weight: newWeight })
+        body: JSON.stringify({ weight: newWeight }),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => {
+        updateTodayData((today) => {
           const workouts = today.workouts.map((w, i) =>
             i === index ? { ...w, weight: newWeight } : w
           )
@@ -280,7 +442,7 @@ export function FitTrackProvider({ children }) {
   }
 
   // Add a custom exercise to today's plan
-  async function addCustomWorkout(exercise) {
+  async function addCustomWorkout(exercise: Workout): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -289,15 +451,15 @@ export function FitTrackProvider({ children }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(exercise)
+        body: JSON.stringify(exercise),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
-          workouts: resData.workouts
+          workouts: resData.workouts,
         }))
         showToast('Workout added', 'success')
       } else {
@@ -310,21 +472,21 @@ export function FitTrackProvider({ children }) {
   }
 
   // Remove a workout from today's plan
-  async function removeWorkout(index) {
+  async function removeWorkout(index: number): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${index}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
           workouts: resData.workouts,
-          workoutsCompleted: resData.workoutsCompleted
+          workoutsCompleted: resData.workoutsCompleted,
         }))
         showToast('Workout removed', 'success')
       } else {
@@ -337,7 +499,7 @@ export function FitTrackProvider({ children }) {
   }
 
   // Replace entire workout list (for loading a plan)
-  async function setTodayWorkouts(workouts) {
+  async function setTodayWorkouts(workouts: Workout[]): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -346,13 +508,13 @@ export function FitTrackProvider({ children }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ workouts })
+        body: JSON.stringify({ workouts }),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
           workouts: resData.workouts,
           workoutsCompleted: 0,
@@ -367,7 +529,7 @@ export function FitTrackProvider({ children }) {
     }
   }
 
-  async function addMeal(name, calories) {
+  async function addMeal(name: string, calories: number): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -376,13 +538,13 @@ export function FitTrackProvider({ children }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, calories })
+        body: JSON.stringify({ name, calories }),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
           meals: resData.meals,
           caloriesConsumed: resData.caloriesConsumed,
@@ -397,7 +559,7 @@ export function FitTrackProvider({ children }) {
     }
   }
 
-  async function addWater(ml) {
+  async function addWater(ml: number): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -406,13 +568,13 @@ export function FitTrackProvider({ children }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ml })
+        body: JSON.stringify({ ml }),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
           waterMl: resData.waterMl,
         }))
@@ -426,29 +588,32 @@ export function FitTrackProvider({ children }) {
     }
   }
 
-  async function addSport(sport, durationMinutes) {
+  async function addSport(
+    sport: { name: string; icon: string; met: number },
+    durationMinutes: number
+  ): Promise<number> {
     const token = localStorage.getItem('fittrack_token')
-    if (!token) return
+    if (!token) return 0
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/sports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: sport.name,
           icon: sport.icon,
           met: sport.met,
-          duration: durationMinutes
-        })
+          duration: durationMinutes,
+        }),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
-          sports: resData.totalSports
+          sports: resData.totalSports,
         }))
         showToast(`${sport.name} added (${resData.sport.calories} cal)`, 'success')
         return resData.sport.calories
@@ -462,13 +627,13 @@ export function FitTrackProvider({ children }) {
     return 0
   }
 
-  async function fetchProgressHistory(limit = 30) {
+  async function fetchProgressHistory(limit: number = 30): Promise<Record<string, DayData>> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return {}
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/progress?limit=${limit}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       })
       const resData = await response.json()
       if (resData.success) {
@@ -480,7 +645,7 @@ export function FitTrackProvider({ children }) {
     return {}
   }
 
-  async function setDailyActivities(activities) {
+  async function setDailyActivities(activities: Activity[]): Promise<void> {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
 
@@ -489,15 +654,15 @@ export function FitTrackProvider({ children }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ activities })
+        body: JSON.stringify({ activities }),
       })
       const resData = await response.json()
       if (resData.success) {
-        updateTodayData(today => ({
+        updateTodayData((today) => ({
           ...today,
-          activities: resData.activities
+          activities: resData.activities,
         }))
         showToast('Activities updated', 'success')
       } else {
@@ -515,74 +680,102 @@ export function FitTrackProvider({ children }) {
   const allDays = data.days
   const bmr = profile ? calculateBMR(profile) : 0
   const tdee = profile ? calculateTDEE(profile) : 0
-  const workoutCalories = today.workouts.filter(w => w.done).reduce((s, w) => s + w.calories, 0)
+  const workoutCalories = today.workouts.filter((w) => w.done).reduce((s, w) => s + w.calories, 0)
   const sportsCalories = (today.sports || []).reduce((s, sp) => s + sp.calories, 0)
   const activityCalories = (today.activities || []).reduce((s, a) => s + a.calories, 0)
   const caloriesBurned = workoutCalories + sportsCalories + activityCalories
 
-  // Logout: clear token and reset state (no full page reload!)
-  //
-  // WHY NOT window.location.href?
-  // Using window.location.href = '/' causes a FULL page reload,
-  // which destroys all React state and re-downloads everything.
-  // Instead, we clear the token and reset state. The ProtectedRoute
-  // in App.jsx will automatically redirect to /login.
-  //
   const logout = useCallback(() => {
     localStorage.removeItem('fittrack_token')
     setData({ profile: null, days: {} })
-    // Navigate is handled by the component that calls logout
   }, [])
 
-  // -----------------------------------------------
-  //  Memoize the context value
-  // -----------------------------------------------
-  //
-  //  WHY useMemo?
-  //  Without useMemo, the value object is recreated on EVERY render,
-  //  even if no data changed. Since objects are compared by reference
-  //  in React, every consumer of this context would re-render
-  //  every time — even if they only use 'profile' and it didn't change.
-  //
-  //  useMemo ensures the value object only changes when the actual
-  //  data it depends on changes.
-  //
-  const value = useMemo(() => ({
-    profile,
-    today,
-    yesterday,
-    allDays,
-    bmr,
-    tdee,
-    caloriesBurned,
-    workoutCalories,
-    sportsCalories,
-    activityCalories,
-    loading,
-    authError,
-    logout,
-    updateProfile,
-    toggleWorkout,
-    updateWorkoutWeight,
-    addCustomWorkout,
-    removeWorkout,
-    setTodayWorkouts,
-    addMeal,
-    addWater,
-    addSport,
-    setDailyActivities,
-    fetchProgressHistory,
-    calculateBMR,
-    calculateTDEE,
-  }), [
-    profile, today, yesterday, allDays, bmr, tdee,
-    caloriesBurned, workoutCalories, sportsCalories, activityCalories,
-    loading, authError, logout,
-  ])
+  const updateProfileCallback = useCallback(updateProfile, [showToast])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const toggleWorkoutCallback = useCallback(toggleWorkout, [showToast])
+
+  const updateWorkoutWeightCallback = useCallback(updateWorkoutWeight, [showToast])
+
+  const addCustomWorkoutCallback = useCallback(addCustomWorkout, [showToast])
+
+  const removeWorkoutCallback = useCallback(removeWorkout, [showToast])
+
+  const setTodayWorkoutsCallback = useCallback(setTodayWorkouts, [showToast])
+
+  const addMealCallback = useCallback(addMeal, [showToast])
+
+  const addWaterCallback = useCallback(addWater, [showToast])
+
+  const addSportCallback = useCallback(addSport, [showToast])
+
+  const setDailyActivitiesCallback = useCallback(setDailyActivities, [showToast])
+
+  const fetchProgressHistoryCallback = useCallback(fetchProgressHistory, [])
+
+  const value: FitTrackContextType = useMemo(
+    () => ({
+      profile,
+      today,
+      yesterday,
+      allDays,
+      bmr,
+      tdee,
+      caloriesBurned,
+      workoutCalories,
+      sportsCalories,
+      activityCalories,
+      loading,
+      authError,
+      logout,
+      updateProfile: updateProfileCallback,
+      toggleWorkout: toggleWorkoutCallback,
+      updateWorkoutWeight: updateWorkoutWeightCallback,
+      addCustomWorkout: addCustomWorkoutCallback,
+      removeWorkout: removeWorkoutCallback,
+      setTodayWorkouts: setTodayWorkoutsCallback,
+      addMeal: addMealCallback,
+      addWater: addWaterCallback,
+      addSport: addSportCallback,
+      setDailyActivities: setDailyActivitiesCallback,
+      fetchProgressHistory: fetchProgressHistoryCallback,
+      calculateBMR,
+      calculateTDEE,
+    }),
+    [
+      profile,
+      today,
+      yesterday,
+      allDays,
+      bmr,
+      tdee,
+      caloriesBurned,
+      workoutCalories,
+      sportsCalories,
+      activityCalories,
+      loading,
+      authError,
+      logout,
+      updateProfileCallback,
+      toggleWorkoutCallback,
+      updateWorkoutWeightCallback,
+      addCustomWorkoutCallback,
+      removeWorkoutCallback,
+      setTodayWorkoutsCallback,
+      addMealCallback,
+      addWaterCallback,
+      addSportCallback,
+      setDailyActivitiesCallback,
+      fetchProgressHistoryCallback,
+    ]
+  )
 
   return <FitTrackContext.Provider value={value}>{children}</FitTrackContext.Provider>
 }
 
-export function useFitTrack() {
-  return useContext(FitTrackContext)
+export function useFitTrack(): FitTrackContextType {
+  const context = useContext(FitTrackContext)
+  if (!context) {
+    throw new Error('useFitTrack must be used within FitTrackProvider')
+  }
+  return context
 }

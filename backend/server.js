@@ -42,6 +42,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const connectDB = require('./config/db')
+const errorHandler = require('./middleware/errorHandler')
 
 // Import route files
 const authRoutes = require('./routes/auth')
@@ -53,6 +54,8 @@ const sportRoutes = require('./routes/sports')
 const activityRoutes = require('./routes/activities')
 const progressRoutes = require('./routes/progress')
 const todayRoutes = require('./routes/today')
+const workoutRoutineRoutes = require('./routes/workoutRoutines')
+const workoutScheduleRoutes = require('./routes/workoutSchedules')
 
 // -----------------------------------------------
 //  2. Connect to MongoDB
@@ -99,6 +102,9 @@ app.use(helmet())
 //
 const allowedOrigins = [
   'http://localhost:5173',   // Vite dev server
+  'http://localhost:5174',   // Vite dev server
+  'http://localhost:5175',   // Vite dev server
+  'http://localhost:5176',   // Vite dev server
   'http://localhost:4173',   // Vite preview
   'http://localhost:3000',   // Alternative dev port
 ]
@@ -178,6 +184,8 @@ app.use('/api', generalLimiter)
 app.use('/api/auth', authLimiter, authRoutes)  // Extra strict rate limit on auth
 app.use('/api/profile', profileRoutes)
 app.use('/api/workouts', workoutRoutes)
+app.use('/api/workout-routines', workoutRoutineRoutes)
+app.use('/api/workout-schedules', workoutScheduleRoutes)
 app.use('/api/meals', mealRoutes)
 app.use('/api/water', waterRoutes)
 app.use('/api/sports', sportRoutes)
@@ -208,12 +216,17 @@ app.get('/', (req, res) => {
 // -----------------------------------------------
 //  7. Error Handling Middleware
 // -----------------------------------------------
-app.use((err, req, res, next) => {
-  console.error('❌ Unhandled Error:', err.stack)
-  res.status(500).json({
+// IMPORTANT: This must be LAST! Express recognizes error handlers
+// by having 4 parameters: (err, req, res, next)
+// It catches all errors thrown or passed via next(error)
+app.use(errorHandler)
+
+// For 404 routes (must come before error handler)
+app.use((req, res) => {
+  res.status(404).json({
     success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'production' ? {} : err.message,
+    message: 'Route not found',
+    path: req.path,
   })
 })
 

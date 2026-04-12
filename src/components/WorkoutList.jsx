@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useFitTrack } from '../context/FitTrackContext'
 
 export default function WorkoutList() {
@@ -25,6 +25,32 @@ export default function WorkoutList() {
     setNewEx({ name: '', sets: '', weight: '', calories: '' })
     setShowAdd(false)
   }
+
+  const [isRestDay, setIsRestDay] = useState(false)
+  const [checkingSchedule, setCheckingSchedule] = useState(true)
+
+  useEffect(() => {
+    async function checkRestDay() {
+      if (today.workouts && today.workouts.length > 0) {
+        setCheckingSchedule(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/workout-schedules/today-routine/get`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
+        })
+        const data = await res.json()
+        if (data && data.isRestDay) {
+          setIsRestDay(true)
+        }
+      } catch (err) {
+        console.log('Failed to fetch schedule for rest day check')
+      } finally {
+        setCheckingSchedule(false)
+      }
+    }
+    checkRestDay()
+  }, [today.workouts?.length])
 
   const doneCount = today.workouts.filter(w => w.done).length
 
@@ -83,8 +109,19 @@ export default function WorkoutList() {
           </li>
         ))}
       </ul>
-      {today.workouts.length === 0 && (
-        <div className="wl-empty">No exercises yet. Add one above or load a plan from the Workouts page!</div>
+      {today.workouts.length === 0 && !checkingSchedule && (
+        isRestDay ? (
+          <div className="wl-empty" style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#4ade80', borderColor: 'rgba(34, 197, 94, 0.2)' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>🌴</div>
+            <strong>Rest Day!</strong> Active recovery recommended.
+            <div style={{ fontSize: '0.85em', marginTop: '4px', opacity: 0.8 }}>Or manually add exercises above if you want to push it.</div>
+          </div>
+        ) : (
+          <div className="wl-empty">No exercises yet. Add one above or load a plan from the Workouts page!</div>
+        )
+      )}
+      {checkingSchedule && today.workouts.length === 0 && (
+        <div className="wl-empty" style={{ opacity: 0.5 }}>Checking schedule...</div>
       )}
     </div>
   )

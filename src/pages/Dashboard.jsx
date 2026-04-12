@@ -9,6 +9,7 @@ import QuickActions from '../components/QuickActions'
 import ActivityFeed from '../components/ActivityFeed'
 import Footer from '../components/Footer'
 import ProfileModal from '../modals/ProfileModal'
+import ProfileViewModal from '../modals/ProfileViewModal'
 import MealModal from '../modals/MealModal'
 import WaterModal from '../modals/WaterModal'
 import CalorieBreakdown from '../modals/CalorieBreakdown'
@@ -21,7 +22,12 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!profile) setModal('profile')
+    // Show profile modal if:
+    // 1. Profile exists but has required fields empty (new user)
+    // 2. Profile doesn't exist at all (safety check)
+    if (!profile || !profile.weight || !profile.height || !profile.age) {
+      setModal('profile')
+    }
   }, [profile])
 
   function showToast(msg) {
@@ -53,7 +59,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      <DashNav />
+      <DashNav onProfileClick={() => setModal('profileView')} />
 
       <main className="dash-main">
         <div className="dash-header-row">
@@ -114,6 +120,7 @@ export default function Dashboard() {
       <Footer />
 
       {/* Modals */}
+      {modal === 'profileView' && <ProfileViewModal onClose={() => setModal(null)} onEdit={() => setModal('profile')} />}
       {modal === 'profile' && <ProfileModal onClose={() => setModal(null)} />}
       {modal === 'meal' && <MealModal onClose={() => { setModal(null); showToast('Meal logged!') }} />}
       {modal === 'water' && <WaterModal onClose={() => { setModal(null); showToast('Water logged! 💧') }} />}

@@ -1,14 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useFitTrack, SPORTS_MET, DAILY_ACTIVITIES, calcMETCalories } from '../context/FitTrackContext'
+import { useToast } from '../context/ToastContext'
 import DashNav from '../components/DashNav'
 import Footer from '../components/Footer'
+import WorkoutRoutineBuilder from '../components/WorkoutRoutineBuilder'
+import WorkoutScheduler from '../components/WorkoutScheduler'
 import './Workouts.css'
 
 export default function Workouts() {
-  const { profile, today, addSport, setDailyActivities, sportsCalories, activityCalories } = useFitTrack()
+  const { profile, today, addSport, setDailyActivities, sportsCalories, activityCalories, setTodayWorkouts } = useFitTrack()
+  const { showToast } = useToast()
   const [selectedSport, setSelectedSport] = useState(null)
   const [duration, setDuration] = useState(30)
   const [toast, setToast] = useState('')
+  const [showRoutineBuilder, setShowRoutineBuilder] = useState(false)
+  const [showScheduler, setShowScheduler] = useState(false)
+  const [schedule, setSchedule] = useState(null)
+  const [todayRoutine, setTodayRoutine] = useState(null)
   const [activityHours, setActivityHours] = useState(() => {
     // Pre-fill from today's data or defaults
     if (today.activities && today.activities.length > 0) {
@@ -21,6 +29,49 @@ export default function Workouts() {
 
   const weight = profile?.weight || 70
   const totalActivityHours = Object.values(activityHours).reduce((s, h) => s + (parseFloat(h) || 0), 0)
+
+  // Load schedule and today's routine on mount
+  useEffect(() => {
+    const loadSchedule = async () => {
+      try {
+        const res = await fetch('/api/workout-schedules', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
+        })
+        const data = await res.json()
+        if (data) setSchedule(data)
+      } catch (err) {
+        console.log('No schedule yet')
+      }
+    }
+
+    const loadTodayRoutine = async () => {
+      try {
+        const res = await fetch('/api/workout-schedules/today-routine/get', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
+        })
+        const data = await res.json()
+        if (data.routine && !data.isRestDay) {
+          setTodayRoutine(data.routine)
+        }
+      } catch (err) {
+        console.log('No routine for today')
+      }
+    }
+
+    loadSchedule()
+    loadTodayRoutine()
+  }, [])
+
+  async function handleLoadRoutine() {
+    if (!todayRoutine) return;
+    const mappedWorkouts = todayRoutine.exercises.map(ex => ({
+      name: ex.name,
+      sets: ex.sets || '',
+      weight: ex.weight ? `${ex.weight}` : 'bodyweight',
+      calories: ex.calories || 0,
+    }))
+    await setTodayWorkouts(mappedWorkouts)
+  }
 
   async function handleLogSport() {
     if (!selectedSport || !duration) return
@@ -59,8 +110,55 @@ export default function Workouts() {
         <p className="page-sub animate-slide-up delay-1">Log sports, track daily activities, and see exactly how many calories you burn.</p>
 
         <div className="workouts-layout">
-          {/* ===== SPORTS CALORIE CALCULATOR ===== */}
+          {/* ===== WEEKLY ROUTINE SCHEDULE ===== */}
           <section className="wo-section animate-slide-up delay-2">
+            <div className="wo-section-header">
+              <h2>📅 Weekly Routine</h2>
+              <div className="routine-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => setShowRoutineBuilder(true)}>
+                  + Routine
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setShowScheduler(true)}>
+                  ⚙️ Schedule
+                </button>
+              </div>
+            </div>
+
+            {schedule ? (
+              <div>
+                {schedule.cycleType === 'weekly' ? (
+                  <div className="weekly-grid">
+                    {schedule.weekDays?.map((day, idx) => {
+                      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                      const isToday = new Date().getDay() === (idx === 6 ? 0 : idx + 1)
+                      const routine = day.routineId
+                      return (
+                        <div key={idx} 
+                          className={`day-box animate-slide-up ${isToday ? 'today-highlight' : ''} ${day.isRestDay ? 'rest-day' : ''}`}
+                          style={{ animationDelay: `${0.2 + (idx * 0.05)}s`, animationFillMode: 'both' }}>
+                          <span className="day-label">{dayNames[idx]}</span>
+                          <span className="routine-name">{day.isRestDay ? '🌴 REST' : routine?.name || '—'}</span>
+                          {routine && <span className="routine-count">{routine.exercises?.length} ex</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="hint-text">Custom {schedule.cycleLengthWeeks}-week cycle</p>
+                )}
+
+                {todayRoutine && (
+                  <button className="btn btn-primary" style={{ marginTop: '16px', width: '100%' }} onClick={handleLoadRoutine}>
+                    📥 Load Today's Routine: {todayRoutine.name}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="hint-text">No schedule yet. Create a routine and set up your weekly schedule!</p>
+            )}
+          </section>
+          {/* ===== SPORTS CALORIE CALCULATOR ===== */}
+          <section className="wo-section animate-slide-up delay-3">
             <div className="wo-section-header">
               <h2>🏆 Sports Calorie Calculator</h2>
               {sportsCalories > 0 && <span className="wo-badge">{sportsCalories} cal burned today</span>}
@@ -125,7 +223,7 @@ export default function Workouts() {
           </section>
 
           {/* ===== DAILY ACTIVITY BREAKDOWN ===== */}
-          <section className="wo-section animate-slide-up delay-3">
+          <section className="wo-section animate-slide-up delay-4">
             <div className="wo-section-header">
               <h2>📊 Daily Activity Calorie Chart</h2>
               <span className="wo-badge-info">{totalActivityHours.toFixed(1)}h / 24h logged</span>
@@ -227,7 +325,27 @@ export default function Workouts() {
               </div>
             )}
           </section>
+
         </div>
+
+        {/* Modals */}
+        {showRoutineBuilder && (
+          <div className="modal-overlay" onClick={() => setShowRoutineBuilder(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowRoutineBuilder(false)}>×</button>
+              <WorkoutRoutineBuilder />
+            </div>
+          </div>
+        )}
+
+        {showScheduler && (
+          <div className="modal-overlay" onClick={() => setShowScheduler(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowScheduler(false)}>×</button>
+              <WorkoutScheduler />
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
       {toast && <div className="toast">{toast}</div>}

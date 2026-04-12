@@ -53,6 +53,7 @@ const userSchema = new mongoose.Schema({
   // This matches the "profile" data from the React frontend.
   // In MongoDB, we can nest objects directly inside a document!
   profile: {
+    name: { type: String, default: '' },
     weight: { type: Number, default: 0 },      // in kg
     height: { type: Number, default: 0 },      // in cm
     age: { type: Number, default: 0 },
@@ -62,10 +63,14 @@ const userSchema = new mongoose.Schema({
       enum: ['sedentary', 'light', 'moderate', 'active', 'veryActive'],
       default: 'moderate',
     },
-    goal: { type: String, default: '' },        // e.g., "lose weight", "gain muscle"
+    goal: {
+      type: String,
+      enum: ['lose', 'maintain', 'gain'],
+      default: 'maintain',
+    },
     waterGoal: { type: Number, default: 3000 }, // daily water intake in ml
-    calorieTarget: { type: Number, default: null }, // null = auto-TDEE, else custom cal target
     dailyWorkoutTarget: { type: Number, default: 1 }, // target workouts per day
+    autoLoadRoutine: { type: Boolean, default: true }, // auto-load scheduled routine
   },
 
 }, {
