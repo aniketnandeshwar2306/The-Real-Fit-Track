@@ -154,7 +154,7 @@ export default function WorkoutScheduler() {
     <div className="routine-scheduler">
       <div className="rs-header">
         <h3>Custom Cycle</h3>
-        <select value={cycleType} onChange={e => setCycleType(e.target.value)}>
+        <select value={cycleType} onChange={e => { setCycleType(e.target.value); initializeSchedule(e.target.value) }}>
           <option value="weekly">Weekly Repeating</option>
           <option value="custom">Custom Cycle</option>
         </select>

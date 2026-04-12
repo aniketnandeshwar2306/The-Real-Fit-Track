@@ -101,14 +101,18 @@ app.use(helmet())
 // malicious websites from making API calls with a user's token.
 //
 const allowedOrigins = [
+  // Development
   'http://localhost:5173',   // Vite dev server
   'http://localhost:5174',   // Vite dev server
   'http://localhost:5175',   // Vite dev server
   'http://localhost:5176',   // Vite dev server
   'http://localhost:4173',   // Vite preview
   'http://localhost:3000',   // Alternative dev port
+  // Production
+  'https://fittrack.vercel.app',  // Main production domain (update if needed)
 ]
-// Add production URL if configured in .env
+
+// Add custom frontend URL if configured in environment
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL)
 }
@@ -117,9 +121,17 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, server-to-server)
     if (!origin) return callback(null, true)
+
+    // Check if origin is in allowedOrigins
     if (allowedOrigins.includes(origin)) {
       return callback(null, true)
     }
+
+    // Allow Vercel preview deployments (*.vercel.app)
+    if (origin && origin.includes('.vercel.app')) {
+      return callback(null, true)
+    }
+
     return callback(new Error('Not allowed by CORS'))
   },
   credentials: true,  // Allow cookies/auth headers

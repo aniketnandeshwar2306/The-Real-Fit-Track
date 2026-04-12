@@ -94,7 +94,7 @@ router.get('/today-routine/get', protect, asyncHandler(async (req, res) => {
     const dayInWeek = dayOfCycle % 7
 
     if (schedule.weeks[weekOfCycle]) {
-      const dayData = schedule.weeks[weekOfCycle].find(d => d.dayOfWeek === scheduleDayOfWeek)
+      const dayData = schedule.weeks[weekOfCycle].find(d => d.dayOfWeek === dayInWeek)
       if (dayData && dayData.isRestDay) {
         return res.json({ routine: null, isRestDay: true })
       }
