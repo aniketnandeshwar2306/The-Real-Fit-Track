@@ -30,33 +30,37 @@ export default function Workouts() {
   const weight = profile?.weight || 70
   const totalActivityHours = Object.values(activityHours).reduce((s, h) => s + (parseFloat(h) || 0), 0)
 
+  const loadSchedule = async () => {
+    try {
+      const res = await fetch('/api/workout-schedules', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
+      })
+      const data = await res.json()
+      if (data) setSchedule(data)
+    } catch (err) {
+      console.log('No schedule yet')
+    }
+  }
+
+  const loadTodayRoutine = async () => {
+    try {
+      const res = await fetch('/api/workout-schedules/today-routine/get', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
+      })
+      const data = await res.json()
+      if (data.routine && !data.isRestDay) {
+        setTodayRoutine(data.routine)
+      } else {
+        setTodayRoutine(null)
+      }
+    } catch (err) {
+      console.log('No routine for today')
+      setTodayRoutine(null)
+    }
+  }
+
   // Load schedule and today's routine on mount
   useEffect(() => {
-    const loadSchedule = async () => {
-      try {
-        const res = await fetch('/api/workout-schedules', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
-        })
-        const data = await res.json()
-        if (data) setSchedule(data)
-      } catch (err) {
-        console.log('No schedule yet')
-      }
-    }
-
-    const loadTodayRoutine = async () => {
-      try {
-        const res = await fetch('/api/workout-schedules/today-routine/get', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
-        })
-        const data = await res.json()
-        if (data.routine && !data.isRestDay) {
-          setTodayRoutine(data.routine)
-        }
-      } catch (err) {
-        console.log('No routine for today')
-      }
-    }
 
     loadSchedule()
     loadTodayRoutine()
@@ -101,6 +105,13 @@ export default function Workouts() {
   }).filter(a => a.hours > 0)
 
   const totalDailyBurn = activityData.reduce((s, a) => s + a.calories, 0)
+
+  function closeModalsAndRefresh() {
+    setShowRoutineBuilder(false)
+    setShowScheduler(false)
+    loadSchedule()
+    loadTodayRoutine()
+  }
 
   return (
     <div className="dashboard">
@@ -330,18 +341,18 @@ export default function Workouts() {
 
         {/* Modals */}
         {showRoutineBuilder && (
-          <div className="modal-overlay" onClick={() => setShowRoutineBuilder(false)}>
+          <div className="modal-overlay" onClick={closeModalsAndRefresh}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowRoutineBuilder(false)}>×</button>
+              <button className="modal-close" onClick={closeModalsAndRefresh}>×</button>
               <WorkoutRoutineBuilder />
             </div>
           </div>
         )}
 
         {showScheduler && (
-          <div className="modal-overlay" onClick={() => setShowScheduler(false)}>
+          <div className="modal-overlay" onClick={closeModalsAndRefresh}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowScheduler(false)}>×</button>
+              <button className="modal-close" onClick={closeModalsAndRefresh}>×</button>
               <WorkoutScheduler />
             </div>
           </div>
