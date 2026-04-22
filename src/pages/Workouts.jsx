@@ -3,7 +3,6 @@ import { useFitTrack, SPORTS_MET, DAILY_ACTIVITIES, calcMETCalories } from '../c
 import { useToast } from '../context/ToastContext'
 import DashNav from '../components/DashNav'
 import Footer from '../components/Footer'
-import WorkoutRoutineBuilder from '../components/WorkoutRoutineBuilder'
 import WorkoutScheduler from '../components/WorkoutScheduler'
 import './Workouts.css'
 
@@ -13,10 +12,10 @@ export default function Workouts() {
   const [selectedSport, setSelectedSport] = useState(null)
   const [duration, setDuration] = useState(30)
   const [toast, setToast] = useState('')
-  const [showRoutineBuilder, setShowRoutineBuilder] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [schedule, setSchedule] = useState(null)
   const [todayRoutine, setTodayRoutine] = useState(null)
+  const [isRollingCycle, setIsRollingCycle] = useState(false)
   const [activityHours, setActivityHours] = useState(() => {
     // Pre-fill from today's data or defaults
     if (today.activities && today.activities.length > 0) {
@@ -48,6 +47,7 @@ export default function Workouts() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
       })
       const data = await res.json()
+      setIsRollingCycle(data.isRolling || false)
       if (data.routine && !data.isRestDay) {
         setTodayRoutine(data.routine)
       } else {
@@ -59,9 +59,7 @@ export default function Workouts() {
     }
   }
 
-  // Load schedule and today's routine on mount
   useEffect(() => {
-
     loadSchedule()
     loadTodayRoutine()
   }, [])
@@ -75,6 +73,21 @@ export default function Workouts() {
       calories: ex.calories || 0,
     }))
     await setTodayWorkouts(mappedWorkouts)
+  }
+
+  async function handleAdvanceRollingDay() {
+    try {
+      const res = await fetch('/api/workout-schedules/advance-rolling-day', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('fittrack_token')}` }
+      })
+      if (!res.ok) throw new Error('Failed to advance day')
+      await loadSchedule()
+      await loadTodayRoutine()
+      showToast('Cycle advanced successfully! 🔄', 'success')
+    } catch(err) {
+      showToast(err.message, 'error')
+    }
   }
 
   async function handleLogSport() {
@@ -98,7 +111,6 @@ export default function Workouts() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  // Calculate preview calories for each activity
   const activityData = DAILY_ACTIVITIES.map(a => {
     const hrs = parseFloat(activityHours[a.name]) || 0
     return { ...a, hours: hrs, calories: calcMETCalories(a.met, weight, hrs * 60) }
@@ -107,7 +119,6 @@ export default function Workouts() {
   const totalDailyBurn = activityData.reduce((s, a) => s + a.calories, 0)
 
   function closeModalsAndRefresh() {
-    setShowRoutineBuilder(false)
     setShowScheduler(false)
     loadSchedule()
     loadTodayRoutine()
@@ -118,19 +129,16 @@ export default function Workouts() {
       <DashNav />
       <main className="dash-main">
         <h1 className="page-title animate-slide-up">WORKOUTS & SPORTS</h1>
-        <p className="page-sub animate-slide-up delay-1">Log sports, track daily activities, and see exactly how many calories you burn.</p>
+        <p className="page-sub animate-slide-up delay-1">Log sports, track daily activities, and manage your workout schedule.</p>
 
         <div className="workouts-layout">
           {/* ===== WEEKLY ROUTINE SCHEDULE ===== */}
           <section className="wo-section animate-slide-up delay-2">
             <div className="wo-section-header">
-              <h2>📅 Weekly Routine</h2>
+              <h2>📅 Unified Plan</h2>
               <div className="routine-actions">
-                <button className="btn btn-secondary btn-sm" onClick={() => setShowRoutineBuilder(true)}>
-                  + Routine
-                </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setShowScheduler(true)}>
-                  ⚙️ Schedule
+                  ⚙️ Configure Planner
                 </button>
               </div>
             </div>
@@ -142,32 +150,55 @@ export default function Workouts() {
                     {schedule.weekDays?.map((day, idx) => {
                       const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
                       const isToday = new Date().getDay() === (idx === 6 ? 0 : idx + 1)
-                      const routine = day.routineId
                       return (
                         <div key={idx}
                           className={`day-box animate-slide-up ${isToday ? 'today-highlight' : ''} ${day.isRestDay ? 'rest-day' : ''}`}
                           style={{ animationDelay: `${0.2 + (idx * 0.05)}s`, animationFillMode: 'both' }}>
                           <span className="day-label">{dayNames[idx]}</span>
-                          <span className="routine-name">{day.isRestDay ? '🌴 REST' : routine?.name || '—'}</span>
-                          {routine && <span className="routine-count">{routine.exercises?.length} ex</span>}
+                          <span className="routine-name">{day.isRestDay ? '🌴 REST' : (day.name || 'Workout')}</span>
+                          {!day.isRestDay && <span className="routine-count">{(day.exercises || []).length} ex</span>}
                         </div>
                       )
                     })}
                   </div>
                 ) : (
-                  <p className="hint-text">Custom {schedule.cycleLengthWeeks}-week cycle</p>
+                  <div className="weekly-grid">
+                    {schedule.rollingDays?.map((day, idx) => {
+                      const isActiveDay = schedule.currentRollingDay === idx
+                      return (
+                        <div key={idx}
+                          className={`day-box animate-slide-up ${isActiveDay ? 'today-highlight' : ''} ${day.isRestDay ? 'rest-day' : ''}`}
+                          style={{ animationDelay: `${0.2 + (idx * 0.05)}s`, animationFillMode: 'both' }}>
+                          <span className="day-label">Day {idx + 1}</span>
+                          <span className="routine-name">{day.isRestDay ? '🌴 REST' : (day.name || 'Workout')}</span>
+                          {!day.isRestDay && <span className="routine-count">{(day.exercises || []).length} ex</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
 
-                {todayRoutine && (
+                {todayRoutine ? (
                   <button className="btn btn-primary" style={{ marginTop: '16px', width: '100%' }} onClick={handleLoadRoutine}>
-                    📥 Load Today's Routine: {todayRoutine.name}
+                    📥 Load Today's Plan: {todayRoutine.name || 'Workout'}
+                  </button>
+                ) : (
+                  <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg-mid)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-dim)' }}>
+                    {isRollingCycle ? "Today is a Rest Day in your cycle!" : "No workouts scheduled for today."}
+                  </div>
+                )}
+
+                {isRollingCycle && (
+                  <button className="btn btn-secondary" style={{ marginTop: '12px', width: '100%', borderColor: 'var(--green-border)' }} onClick={handleAdvanceRollingDay}>
+                    ✅ Mark Day Complete (Advance Cycle)
                   </button>
                 )}
               </div>
             ) : (
-              <p className="hint-text">No schedule yet. Create a routine and set up your weekly schedule!</p>
+              <p className="hint-text">No schedule yet. Configure your planner to get started!</p>
             )}
           </section>
+
           {/* ===== SPORTS CALORIE CALCULATOR ===== */}
           <section className="wo-section animate-slide-up delay-3">
             <div className="wo-section-header">
@@ -215,7 +246,6 @@ export default function Workouts() {
               </div>
             )}
 
-            {/* Logged sports today */}
             {today.sports && today.sports.length > 0 && (
               <div className="logged-sports">
                 <h4>Today's Sports Log</h4>
@@ -275,7 +305,6 @@ export default function Workouts() {
               Save Daily Activities →
             </button>
 
-            {/* Visual Chart */}
             {activityData.length > 0 && (
               <div className="activity-chart">
                 <div className="ac-header">
@@ -283,7 +312,6 @@ export default function Workouts() {
                   <span className="ac-total">{totalDailyBurn} cal total</span>
                 </div>
 
-                {/* Bar chart */}
                 <div className="ac-bars">
                   {activityData.map(a => {
                     const pct = totalDailyBurn > 0 ? (a.calories / totalDailyBurn) * 100 : 0
@@ -304,40 +332,6 @@ export default function Workouts() {
                     )
                   })}
                 </div>
-
-                {/* Donut chart */}
-                <div className="ac-donut-section">
-                  <svg viewBox="0 0 100 100" className="ac-donut">
-                    {(() => {
-                      let offset = 0
-                      return activityData.map((a, i) => {
-                        const pct = totalDailyBurn > 0 ? (a.calories / totalDailyBurn) * 100 : 0
-                        const circ = 2 * Math.PI * 40
-                        const dash = (pct / 100) * circ
-                        const currentOffset = offset
-                        offset += pct
-                        return (
-                          <circle key={i} cx="50" cy="50" r="40" fill="none"
-                            stroke={a.color} strokeWidth="8"
-                            strokeDasharray={`${dash} ${circ - dash}`}
-                            strokeDashoffset={-(currentOffset / 100) * circ}
-                            transform="rotate(-90 50 50)" />
-                        )
-                      })
-                    })()}
-                    <text x="50" y="46" textAnchor="middle" fill="white" fontSize="12" fontFamily="Bebas Neue">{totalDailyBurn}</text>
-                    <text x="50" y="58" textAnchor="middle" fill="#777" fontSize="5">calories</text>
-                  </svg>
-                  <div className="ac-donut-legend">
-                    {activityData.map(a => (
-                      <div className="ac-legend-item" key={a.name}>
-                        <span className="ac-legend-dot" style={{ background: a.color }}></span>
-                        <span className="ac-legend-name">{a.name}</span>
-                        <span className="ac-legend-pct">{Math.round((a.calories / totalDailyBurn) * 100)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </section>
@@ -345,18 +339,9 @@ export default function Workouts() {
         </div>
 
         {/* Modals */}
-        {showRoutineBuilder && (
-          <div className="modal-overlay" onClick={closeModalsAndRefresh}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={closeModalsAndRefresh}>×</button>
-              <WorkoutRoutineBuilder />
-            </div>
-          </div>
-        )}
-
         {showScheduler && (
           <div className="modal-overlay" onClick={closeModalsAndRefresh}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
               <button className="modal-close" onClick={closeModalsAndRefresh}>×</button>
               <WorkoutScheduler />
             </div>

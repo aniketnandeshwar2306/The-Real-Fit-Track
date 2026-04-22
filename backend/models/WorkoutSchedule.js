@@ -9,7 +9,7 @@ const workoutScheduleSchema = new mongoose.Schema({
 
   cycleType: {
     type: String,
-    enum: ['weekly', 'custom'],
+    enum: ['weekly', 'rolling'],
     required: true,
   },
 
@@ -22,39 +22,45 @@ const workoutScheduleSchema = new mongoose.Schema({
   weekDays: [
     {
       dayOfWeek: { type: Number, min: 0, max: 6 }, // 0 = Monday, 6 = Sunday
-      routineId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'WorkoutRoutine',
-        default: null, // null means rest day
-      },
+      name: { type: String, default: '' }, // e.g., 'Chest & Triceps'
       isRestDay: { type: Boolean, default: false },
+      exercises: [
+        {
+          name: String,
+          sets: String,
+          reps: String,
+          weight: String,
+        }
+      ]
     },
   ],
 
-  // For custom multi-week cycles:
-  cycleLengthWeeks: {
+  // For rolling N-day cycles:
+  cycleLengthDays: {
     type: Number,
-    default: 1,
+    default: 3,
+  },
+  
+  currentRollingDay: {
+    type: Number,
+    default: 0, // Points to the index in rollingDays array currently active
   },
 
-  weeks: [
-    [
-      {
-        dayOfWeek: { type: Number, min: 0, max: 6 },
-        routineId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'WorkoutRoutine',
-          default: null,
-        },
-        isRestDay: { type: Boolean, default: false },
-      },
-    ],
+  rollingDays: [
+    {
+      dayIndex: { type: Number },
+      name: { type: String, default: '' },
+      isRestDay: { type: Boolean, default: false },
+      exercises: [
+        {
+          name: String,
+          sets: String,
+          reps: String,
+          weight: String,
+        }
+      ]
+    },
   ],
-
-  currentCycleStartDate: {
-    type: Date,
-    default: Date.now,
-  },
 }, {
   timestamps: true,
 })
