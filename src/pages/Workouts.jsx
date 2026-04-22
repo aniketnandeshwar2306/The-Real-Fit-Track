@@ -133,7 +133,7 @@ export default function Workouts() {
                       const isToday = new Date().getDay() === (idx === 6 ? 0 : idx + 1)
                       const routine = day.routineId
                       return (
-                        <div key={idx} 
+                        <div key={idx}
                           className={`day-box animate-slide-up ${isToday ? 'today-highlight' : ''} ${day.isRestDay ? 'rest-day' : ''}`}
                           style={{ animationDelay: `${0.2 + (idx * 0.05)}s`, animationFillMode: 'both' }}>
                           <span className="day-label">{dayNames[idx]}</span>

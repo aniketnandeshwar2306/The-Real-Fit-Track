@@ -93,7 +93,7 @@ router.post(
 //
 //  REQUEST BODY (JSON):
 //  {
-//    "email": "aniket@example.com",
+//    "login": "aniket@example.com",
 //    "password": "mypassword123"
 //  }
 //
@@ -101,10 +101,12 @@ router.post(
   '/login',
   validateRequest(loginSchema),
   asyncHandler(async (req, res) => {
-    const { email, password } = req.body
+    const { login, password } = req.body
 
-    // Find user by email
-    const user = await User.findOne({ email })
+    // Find user by email or username
+    const user = await User.findOne({
+      $or: [{ email: login }, { username: login }],
+    })
 
     if (!user) {
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDS')

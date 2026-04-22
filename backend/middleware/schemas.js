@@ -83,8 +83,14 @@ const signupSchema = Joi.object({
 
 // Login validation
 const loginSchema = Joi.object({
-  email: patterns.email,
-  password: Joi.string().required(),
+  login: Joi.string()
+    .trim()
+    .required()
+    .messages({
+      'any.required': 'Email or username is required',
+      'string.empty': 'Email or username is required',
+    }),
+  password: patterns.password,
 }).unknown(false)
 
 // Profile update validation
@@ -134,7 +140,9 @@ const activitySchema = Joi.object({
   name: patterns.stringField('Activity name', 100),
   icon: Joi.string().max(10).optional(),
   met: patterns.positiveNumber('MET value'),
-  color: Joi.string().pattern(/^#[0-9A-F]{6}$/i).optional(),
+  color: Joi.string().pattern(/^#[0-9a-fA-F]{3,8}$/).optional().messages({
+    'string.pattern.base': 'Color must be a valid hex color (#RGB, #RRGGBB, or #RRGGBBAA)',
+  }),
 }).unknown(false)
 
 module.exports = {

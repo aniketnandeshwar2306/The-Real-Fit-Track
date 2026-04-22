@@ -4,6 +4,7 @@
   letter-spacing: 4px;
   margin-bottom: 8px;
 }
+
 .page-sub {
   font-size: 14px;
   color: var(--text-muted);
@@ -33,6 +34,7 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
 .wo-section-header h2 {
   font-family: var(--font-body);
   font-size: 20px;
@@ -40,6 +42,7 @@
   color: var(--text-bright);
   letter-spacing: 0.5px;
 }
+
 .wo-badge {
   font-size: 12px;
   padding: 6px 16px;
@@ -50,6 +53,7 @@
   font-weight: 700;
   box-shadow: 0 0 12px rgba(170, 255, 0, 0.15);
 }
+
 .wo-badge-info {
   font-size: 12px;
   padding: 6px 16px;
@@ -59,6 +63,7 @@
   color: #4488ff;
   font-weight: 600;
 }
+
 .wo-hint {
   font-size: 13px;
   color: var(--text-dim);
@@ -73,6 +78,7 @@
   gap: 12px;
   margin-bottom: 24px;
 }
+
 .sport-card {
   display: flex;
   flex-direction: column;
@@ -123,12 +129,14 @@
 .sport-icon {
   font-size: 32px;
 }
+
 .sport-name {
   font-size: 12px;
   font-weight: 700;
   text-align: center;
   line-height: 1.2;
 }
+
 .sport-met {
   font-size: 10px;
   color: var(--text-dimmer);
@@ -150,6 +158,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -162,11 +171,13 @@
   align-items: center;
   margin-bottom: 20px;
 }
+
 .slp-sport {
   font-size: 18px;
   font-weight: 700;
   color: var(--green);
 }
+
 .slp-met {
   font-size: 12px;
   color: var(--text-dim);
@@ -174,16 +185,19 @@
   padding: 4px 12px;
   border-radius: 100px;
 }
+
 .slp-body {
   display: flex;
   gap: 24px;
   align-items: center;
   margin-bottom: 20px;
 }
+
 .slp-field {
   flex: 1;
   min-width: 200px;
 }
+
 .slp-field label {
   display: block;
   font-size: 11px;
@@ -193,6 +207,7 @@
   margin-bottom: 10px;
   font-weight: 700;
 }
+
 .slp-field input {
   width: 100%;
   padding: 12px 14px;
@@ -204,6 +219,7 @@
   outline: none;
   transition: all 0.2s ease;
 }
+
 .slp-field input:focus {
   border-color: var(--green);
   box-shadow: 0 0 12px rgba(170, 255, 0, 0.1);
@@ -213,6 +229,7 @@
   flex: 1;
   text-align: center;
 }
+
 .slp-preview-cal {
   font-family: var(--font-display);
   font-size: 56px;
@@ -220,6 +237,7 @@
   line-height: 1;
   font-weight: 700;
 }
+
 .slp-preview-label {
   font-size: 12px;
   color: var(--text-dim);
@@ -228,6 +246,7 @@
   margin-top: 6px;
   font-weight: 600;
 }
+
 .slp-formula {
   font-size: 11px;
   color: var(--text-dimmer);
@@ -273,23 +292,28 @@
 .logged-sport-item:last-child {
   margin-bottom: 0;
 }
+
 .ls-icon {
   font-size: 24px;
 }
+
 .ls-info {
   flex: 1;
 }
+
 .ls-name {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-bright);
   display: block;
 }
+
 .ls-meta {
   font-size: 12px;
   color: var(--text-dim);
   margin-top: 2px;
 }
+
 .ls-cal {
   font-size: 16px;
   font-weight: 800;
@@ -305,6 +329,7 @@
   flex-direction: column;
   gap: 10px;
 }
+
 .activity-input-row {
   display: flex;
   align-items: center;
@@ -339,12 +364,14 @@
   font-weight: 600;
   color: var(--text-bright);
 }
+
 .air-input-wrap {
   display: flex;
   align-items: center;
   gap: 6px;
   width: 100px;
 }
+
 .air-input-wrap input {
   width: 60px;
   padding: 8px 10px;
@@ -369,6 +396,7 @@
   color: var(--text-dimmer);
   font-weight: 600;
 }
+
 .air-cal {
   font-size: 13px;
   font-weight: 700;
@@ -404,12 +432,14 @@
   align-items: center;
   margin-bottom: 24px;
 }
+
 .ac-header h4 {
   font-family: var(--font-body);
   font-size: 17px;
   font-weight: 700;
   color: var(--text-bright);
 }
+
 .ac-total {
   font-family: var(--font-display);
   font-size: 28px;
@@ -425,11 +455,13 @@
   gap: 14px;
   margin-bottom: 32px;
 }
+
 .ac-bar-row {
   display: flex;
   align-items: center;
   gap: 14px;
 }
+
 .ac-bar-label {
   display: flex;
   align-items: center;
@@ -440,10 +472,12 @@
   color: var(--text-bright);
   font-weight: 600;
 }
+
 .ac-bar-icon {
   font-size: 16px;
   font-weight: 600;
 }
+
 .ac-bar-track {
   flex: 1;
   height: 24px;
@@ -469,10 +503,12 @@
   white-space: nowrap;
   font-weight: 600;
 }
+
 .ac-bar-value strong {
   color: var(--text-bright);
   font-size: 14px;
 }
+
 .ac-bar-hrs {
   font-size: 11px;
   color: var(--text-dimmer);
@@ -506,6 +542,7 @@
   gap: 10px;
   min-width: 200px;
 }
+
 .ac-legend-item {
   display: flex;
   align-items: center;
@@ -529,6 +566,7 @@
   color: var(--text-bright);
   font-weight: 600;
 }
+
 .ac-legend-pct {
   color: var(--green);
   font-weight: 700;
@@ -542,22 +580,27 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
   }
+
   .slp-body {
     flex-direction: column;
   }
+
   .ac-bar-label {
     width: 130px;
     font-size: 12px;
   }
+
   .ac-donut-section {
     flex-direction: column;
     align-items: center;
     gap: 20px;
   }
+
   .ac-donut {
     width: 160px;
     height: 160px;
   }
+
   .ac-donut-legend {
     width: 100%;
   }
@@ -568,19 +611,24 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
+
   .sport-card {
     padding: 14px 8px;
   }
+
   .sport-icon {
     font-size: 28px;
   }
+
   .sport-name {
     font-size: 11px;
   }
+
   .slp-body {
     flex-direction: column;
     gap: 16px;
   }
+
   .slp-preview-cal {
     font-size: 44px;
   }

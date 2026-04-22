@@ -226,14 +226,9 @@ app.get('/', (req, res) => {
 })
 
 // -----------------------------------------------
-//  7. Error Handling Middleware
+//  7. 404 Handler (must come BEFORE error handler)
 // -----------------------------------------------
-// IMPORTANT: This must be LAST! Express recognizes error handlers
-// by having 4 parameters: (err, req, res, next)
-// It catches all errors thrown or passed via next(error)
-app.use(errorHandler)
-
-// For 404 routes (must come before error handler)
+// For 404 routes — handles any request that didn't match a route
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -243,7 +238,15 @@ app.use((req, res) => {
 })
 
 // -----------------------------------------------
-//  8. Start the Server
+//  8. Error Handling Middleware (must come LAST)
+// -----------------------------------------------
+// IMPORTANT: This must be LAST! Express recognizes error handlers
+// by having 4 parameters: (err, req, res, next)
+// It catches all errors thrown or passed via next(error)
+app.use(errorHandler)
+
+// -----------------------------------------------
+//  9. Start the Server
 // -----------------------------------------------
 const PORT = process.env.PORT || 5000
 
