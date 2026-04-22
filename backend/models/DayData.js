@@ -78,6 +78,8 @@ const dayDataSchema = new mongoose.Schema({
     required: true,
   },
 
+  deleteChancesUsed: { type: Number, default: 0 },
+
   // --- Nutrition ---
   caloriesConsumed: { type: Number, default: 0 },
   meals: [mealSchema],          // Array of meal subdocuments

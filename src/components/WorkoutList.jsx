@@ -59,6 +59,7 @@ export default function WorkoutList() {
       <div className="card-header">
         <h3 className="card-title">Today's Plan</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span className="badge" style={{ background: 'var(--bg-mid)' }}>Deletes left: {5 - (today.deleteChancesUsed || 0)}</span>
           <span className="badge">{doneCount}/{today.workouts.length} done</span>
           <button className="wl-add-btn" onClick={() => setShowAdd(!showAdd)} title="Add exercise">+</button>
         </div>
@@ -105,7 +106,9 @@ export default function WorkoutList() {
                 </button>
               )}
             </div>
-            <button className="wl-remove-btn" onClick={() => removeWorkout(i)} title="Remove">×</button>
+            {(today.deleteChancesUsed || 0) < 5 && (
+              <button className="wl-remove-btn" onClick={() => removeWorkout(i)} title="Remove">×</button>
+            )}
           </li>
         ))}
       </ul>

@@ -70,6 +70,7 @@ router.get('/', protect, async (req, res) => {
       date: today.date,
       workouts: today.workouts,
       workoutsCompleted: today.workoutsCompleted,
+      deleteChancesUsed: today.deleteChancesUsed || 0,
     })
   } catch (error) {
     console.error('Get workouts error:', error)
@@ -203,6 +204,10 @@ router.delete('/:index', protect, async (req, res) => {
     const index = parseInt(req.params.index)
     const today = await getOrCreateToday(req.user._id)
 
+    if (today.deleteChancesUsed >= 5) {
+      return res.status(403).json({ success: false, message: 'You have exhausted your chances to delete logged items today (limit 5).' })
+    }
+
     if (index < 0 || index >= today.workouts.length) {
       return res.status(400).json({ success: false, message: 'Invalid workout index' })
     }
@@ -212,12 +217,14 @@ router.delete('/:index', protect, async (req, res) => {
     // splice() removes elements from an array (same as JavaScript)
     today.workouts.splice(index, 1)
     today.workoutsCompleted = today.workouts.filter(w => w.done).length
+    today.deleteChancesUsed = (today.deleteChancesUsed || 0) + 1
     await today.save()
 
     res.json({
       success: true,
       message: `${removed} removed from workouts`,
       workouts: today.workouts,
+      deleteChancesUsed: today.deleteChancesUsed,
     })
   } catch (error) {
     console.error('Delete workout error:', error)

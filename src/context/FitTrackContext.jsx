@@ -105,6 +105,7 @@ function makeDayData() {
     workoutsCompleted: 0,
     sports: [],
     activities: [],
+    deleteChancesUsed: 0,
   }
 }
 
@@ -158,6 +159,7 @@ export function FitTrackProvider({ children }) {
               workoutsCompleted: todayData.workoutsCompleted || 0,
               sports: todayData.sports || [],
               activities: todayData.activities || [],
+              deleteChancesUsed: todayData.deleteChancesUsed || 0,
             }
           }
         })
@@ -324,7 +326,8 @@ export function FitTrackProvider({ children }) {
         updateTodayData(today => ({
           ...today,
           workouts: resData.workouts,
-          workoutsCompleted: resData.workoutsCompleted
+          workoutsCompleted: resData.workoutsCompleted,
+          deleteChancesUsed: resData.deleteChancesUsed !== undefined ? resData.deleteChancesUsed : today.deleteChancesUsed
         }))
         showToast('Workout removed', 'success')
       } else {
@@ -397,6 +400,33 @@ export function FitTrackProvider({ children }) {
     }
   }
 
+  async function removeMeal(index) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/meals/${index}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          meals: resData.meals,
+          caloriesConsumed: resData.caloriesConsumed,
+          deleteChancesUsed: resData.deleteChancesUsed !== undefined ? resData.deleteChancesUsed : today.deleteChancesUsed
+        }))
+        showToast('Meal removed', 'success')
+      } else {
+        showToast(resData.message || 'Failed to remove meal', 'error')
+      }
+    } catch (err) {
+      console.error('Remove meal error:', err)
+      showToast('Could not remove meal', 'error')
+    }
+  }
+
   async function addWater(ml) {
     const token = localStorage.getItem('fittrack_token')
     if (!token) return
@@ -460,6 +490,32 @@ export function FitTrackProvider({ children }) {
       showToast('Could not add sport', 'error')
     }
     return 0
+  }
+
+  async function removeSport(index) {
+    const token = localStorage.getItem('fittrack_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/sports/${index}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        updateTodayData(today => ({
+          ...today,
+          sports: resData.totalSports,
+          deleteChancesUsed: resData.deleteChancesUsed !== undefined ? resData.deleteChancesUsed : today.deleteChancesUsed
+        }))
+        showToast('Sport removed', 'success')
+      } else {
+        showToast(resData.message || 'Failed to remove sport', 'error')
+      }
+    } catch (err) {
+      console.error('Remove sport error:', err)
+      showToast('Could not remove sport', 'error')
+    }
   }
 
   async function fetchProgressHistory(limit = 30) {
@@ -568,8 +624,10 @@ export function FitTrackProvider({ children }) {
     removeWorkout,
     setTodayWorkouts,
     addMeal,
+    removeMeal,
     addWater,
     addSport,
+    removeSport,
     setDailyActivities,
     fetchProgressHistory,
     calculateBMR,

@@ -37,7 +37,7 @@ const CATEGORIES = [
 ]
 
 export default function Nutrition() {
-  const { today, addMeal, tdee } = useFitTrack()
+  const { today, addMeal, removeMeal, tdee } = useFitTrack()
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState('')
@@ -168,7 +168,12 @@ export default function Nutrition() {
                       <span className="mi-name">{m.name}</span>
                       <span className="mi-time">{m.time}</span>
                     </div>
-                    <span className="mi-cal">+{m.calories} cal</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="mi-cal">+{m.calories} cal</span>
+                      {(today.deleteChancesUsed || 0) < 5 && (
+                        <button onClick={() => removeMeal(i)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }} title="Remove meal">×</button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

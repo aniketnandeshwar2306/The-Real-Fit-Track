@@ -69,6 +69,7 @@ router.post('/', protect, validateMeal, asyncHandler(async (req, res) => {
     message: `${name} logged (${calories} cal)`,
     meals: today.meals,
     caloriesConsumed: today.caloriesConsumed,
+    deleteChancesUsed: today.deleteChancesUsed || 0,
   })
 }))
 
@@ -87,6 +88,43 @@ router.get('/', protect, asyncHandler(async (req, res) => {
     date: getTodayKey(),
     meals: today ? today.meals : [],
     caloriesConsumed: today ? today.caloriesConsumed : 0,
+    deleteChancesUsed: today ? today.deleteChancesUsed : 0,
+  })
+}))
+
+// -----------------------------------------------
+//  DELETE /api/meals/:index
+//  Remove a meal from today's list
+// -----------------------------------------------
+router.delete('/:index', protect, asyncHandler(async (req, res) => {
+  const index = parseInt(req.params.index)
+  // We need to fetch the document first to calculate properly and check limit
+  const today = await DayData.findOne({
+    user: req.user._id,
+    date: getTodayKey(),
+  })
+
+  if (!today || index < 0 || index >= today.meals.length) {
+    return res.status(400).json({ success: false, message: 'Invalid meal index' })
+  }
+
+  if (today.deleteChancesUsed >= 5) {
+    return res.status(403).json({ success: false, message: 'You have exhausted your chances to delete logged items today (limit 5).' })
+  }
+
+  const removed = today.meals[index]
+
+  today.meals.splice(index, 1)
+  today.caloriesConsumed = Math.max(0, today.caloriesConsumed - removed.calories)
+  today.deleteChancesUsed = (today.deleteChancesUsed || 0) + 1
+  await today.save()
+
+  res.json({
+    success: true,
+    message: `${removed.name} removed from meals`,
+    meals: today.meals,
+    caloriesConsumed: today.caloriesConsumed,
+    deleteChancesUsed: today.deleteChancesUsed,
   })
 }))
 

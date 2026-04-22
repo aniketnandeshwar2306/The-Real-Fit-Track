@@ -81,6 +81,41 @@ router.post('/', protect, validateSport, asyncHandler(async (req, res) => {
     message: `${name} logged — ${calories} calories burned! 🔥`,
     sport: today.sports[today.sports.length - 1],
     totalSports: today.sports,
+    deleteChancesUsed: today.deleteChancesUsed || 0,
+  })
+}))
+
+// -----------------------------------------------
+//  DELETE /api/sports/:index
+//  Remove a sport activity from today's list
+// -----------------------------------------------
+router.delete('/:index', protect, asyncHandler(async (req, res) => {
+  const index = parseInt(req.params.index)
+  // Fetch existing day data to perform limits logic
+  const today = await DayData.findOne({
+    user: req.user._id,
+    date: getTodayKey()
+  })
+
+  if (!today || index < 0 || index >= today.sports.length) {
+    return res.status(400).json({ success: false, message: 'Invalid sport index' })
+  }
+
+  if (today.deleteChancesUsed >= 5) {
+    return res.status(403).json({ success: false, message: 'You have exhausted your chances to delete logged items today (limit 5).' })
+  }
+
+  const removed = today.sports[index]
+
+  today.sports.splice(index, 1)
+  today.deleteChancesUsed = (today.deleteChancesUsed || 0) + 1
+  await today.save()
+
+  res.json({
+    success: true,
+    message: `${removed.name} removed from sports`,
+    totalSports: today.sports,
+    deleteChancesUsed: today.deleteChancesUsed,
   })
 }))
 

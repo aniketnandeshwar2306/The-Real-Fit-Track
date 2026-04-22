@@ -8,7 +8,7 @@ import WorkoutScheduler from '../components/WorkoutScheduler'
 import './Workouts.css'
 
 export default function Workouts() {
-  const { profile, today, addSport, setDailyActivities, sportsCalories, activityCalories, setTodayWorkouts } = useFitTrack()
+  const { profile, today, addSport, removeSport, setDailyActivities, sportsCalories, activityCalories, setTodayWorkouts } = useFitTrack()
   const { showToast } = useToast()
   const [selectedSport, setSelectedSport] = useState(null)
   const [duration, setDuration] = useState(30)
@@ -226,7 +226,12 @@ export default function Workouts() {
                       <span className="ls-name">{s.name}</span>
                       <span className="ls-meta">{s.duration} min · {s.time}</span>
                     </div>
-                    <span className="ls-cal">{s.calories} cal</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="ls-cal">{s.calories} cal</span>
+                      {(today.deleteChancesUsed || 0) < 5 && (
+                        <button onClick={() => removeSport(i)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }} title="Remove sport">×</button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
