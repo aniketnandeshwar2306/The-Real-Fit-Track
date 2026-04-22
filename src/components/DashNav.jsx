@@ -14,7 +14,7 @@ export default function DashNav({ onProfileClick }) {
   return (
     <header className="dash-header">
       <div className="dash-header-top">
-        <Link to="/" className="logo">FitTrack</Link>
+        <Link to="/dashboard" className="logo">FitTrack</Link>
         <div className="searchbar">
           <input type="text" placeholder="Search exercises, foods..." />
           <button className="btn btn-primary btn-sm">Search</button>
