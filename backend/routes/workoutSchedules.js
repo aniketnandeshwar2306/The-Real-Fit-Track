@@ -17,12 +17,12 @@ router.post('/', protect, asyncHandler(async (req, res) => {
 
   // Deactivate previous active schedule
   await WorkoutSchedule.updateMany(
-    { userId: req.user.id, isActive: true },
+    { userId: req.user._id, isActive: true },
     { isActive: false }
   )
 
   const schedule = new WorkoutSchedule({
-    userId: req.user.id,
+    userId: req.user._id,
     cycleType,
     isActive: true,
     weekDays: cycleType === 'weekly' ? weekDays : [],
@@ -41,7 +41,7 @@ router.post('/', protect, asyncHandler(async (req, res) => {
  */
 router.get('/', protect, asyncHandler(async (req, res) => {
   const schedule = await WorkoutSchedule.findOne({
-    userId: req.user.id,
+    userId: req.user._id,
     isActive: true,
   })
   res.json(schedule)
@@ -53,7 +53,7 @@ router.get('/', protect, asyncHandler(async (req, res) => {
  */
 router.get('/today-routine/get', protect, asyncHandler(async (req, res) => {
   const schedule = await WorkoutSchedule.findOne({
-    userId: req.user.id,
+    userId: req.user._id,
     isActive: true,
   })
 
@@ -94,7 +94,7 @@ router.get('/today-routine/get', protect, asyncHandler(async (req, res) => {
  */
 router.put('/advance-rolling-day', protect, asyncHandler(async (req, res) => {
   const schedule = await WorkoutSchedule.findOne({
-    userId: req.user.id,
+    userId: req.user._id,
     isActive: true,
   })
 
@@ -115,7 +115,7 @@ router.put('/advance-rolling-day', protect, asyncHandler(async (req, res) => {
 router.put('/:id', protect, asyncHandler(async (req, res) => {
   const schedule = await WorkoutSchedule.findOne({
     _id: req.params.id,
-    userId: req.user.id,
+    userId: req.user._id,
   })
 
   if (!schedule) {
@@ -142,7 +142,7 @@ router.put('/:id', protect, asyncHandler(async (req, res) => {
 router.delete('/:id', protect, asyncHandler(async (req, res) => {
   const schedule = await WorkoutSchedule.findOneAndDelete({
     _id: req.params.id,
-    userId: req.user.id,
+    userId: req.user._id,
   })
 
   if (!schedule) {
