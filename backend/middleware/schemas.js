@@ -145,6 +145,24 @@ const activitySchema = Joi.object({
   }),
 }).unknown(false)
 
+// Community post validation
+const postSchema = Joi.object({
+  content: Joi.string().trim().max(1000).required().messages({
+    'any.required': 'Post content is required',
+    'string.max': 'Post must be under 1000 characters',
+  }),
+  type: Joi.string().valid('workout', 'achievement', 'milestone', 'general').default('general'),
+  icon: Joi.string().max(10).default('💪'),
+}).unknown(false)
+
+// Community comment validation
+const commentSchema = Joi.object({
+  text: Joi.string().trim().max(500).required().messages({
+    'any.required': 'Comment text is required',
+    'string.max': 'Comment must be under 500 characters',
+  }),
+}).unknown(false)
+
 module.exports = {
   signupSchema,
   loginSchema,
@@ -154,4 +172,6 @@ module.exports = {
   workoutSchema,
   sportSchema,
   activitySchema,
+  postSchema,
+  commentSchema,
 }

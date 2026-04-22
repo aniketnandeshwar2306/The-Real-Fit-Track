@@ -586,3 +586,110 @@ export function FitTrackProvider({ children }) {
 export function useFitTrack() {
   return useContext(FitTrackContext)
 }
+
+// -----------------------------------------------
+//  Community API helpers (fetched on-demand, not global state)
+// -----------------------------------------------
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('fittrack_token')
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  }
+}
+
+export async function fetchCommunityFeed(page = 1) {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/feed?page=${page}`, {
+      headers: getAuthHeaders(),
+    })
+    const data = await res.json()
+    return data.success ? data : { posts: [], page: 1, totalPages: 1, total: 0 }
+  } catch (err) {
+    console.error('Fetch feed error:', err)
+    return { posts: [], page: 1, totalPages: 1, total: 0 }
+  }
+}
+
+export async function createCommunityPost(content, type = 'general', icon = '💪') {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/posts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ content, type, icon }),
+    })
+    const data = await res.json()
+    return data.success ? data.post : null
+  } catch (err) {
+    console.error('Create post error:', err)
+    return null
+  }
+}
+
+export async function togglePostLike(postId) {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/posts/${postId}/like`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+    return await res.json()
+  } catch (err) {
+    console.error('Toggle like error:', err)
+    return null
+  }
+}
+
+export async function addPostComment(postId, text) {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/posts/${postId}/comment`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ text }),
+    })
+    const data = await res.json()
+    return data.success ? data.comment : null
+  } catch (err) {
+    console.error('Add comment error:', err)
+    return null
+  }
+}
+
+export async function fetchChallenges() {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/challenges`, {
+      headers: getAuthHeaders(),
+    })
+    const data = await res.json()
+    return data.success ? data.challenges : []
+  } catch (err) {
+    console.error('Fetch challenges error:', err)
+    return []
+  }
+}
+
+export async function joinChallengeAPI(challengeId) {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/challenges/${challengeId}/join`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+    return await res.json()
+  } catch (err) {
+    console.error('Join challenge error:', err)
+    return null
+  }
+}
+
+export async function fetchLeaderboard() {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/community/leaderboard`, {
+      headers: getAuthHeaders(),
+    })
+    const data = await res.json()
+    return data.success ? data.leaderboard : []
+  } catch (err) {
+    console.error('Fetch leaderboard error:', err)
+    return []
+  }
+}

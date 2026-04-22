@@ -56,6 +56,7 @@ const progressRoutes = require('./routes/progress')
 const todayRoutes = require('./routes/today')
 const workoutRoutineRoutes = require('./routes/workoutRoutines')
 const workoutScheduleRoutes = require('./routes/workoutSchedules')
+const communityRoutes = require('./routes/community')
 
 // -----------------------------------------------
 //  2. Connect to MongoDB
@@ -204,6 +205,7 @@ app.use('/api/sports', sportRoutes)
 app.use('/api/activities', activityRoutes)
 app.use('/api/progress', progressRoutes)
 app.use('/api/today', todayRoutes)
+app.use('/api/community', communityRoutes)
 
 // -----------------------------------------------
 //  6. Health Check Route

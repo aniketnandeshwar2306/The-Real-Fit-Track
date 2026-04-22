@@ -151,6 +151,102 @@
   letter-spacing: 1.5px;
 }
 
+/* ── Create Post Card ── */
+.create-post-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+.create-post-card.focused {
+  border-color: var(--green-border);
+  box-shadow: 0 4px 24px rgba(170, 255, 0, 0.06);
+}
+.cp-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.cp-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.cp-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: all 0.3s ease;
+  min-height: 42px;
+}
+.cp-input:focus {
+  border-color: var(--green-border);
+}
+.cp-input::placeholder {
+  color: var(--text-dimmer);
+}
+.cp-actions {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.cp-types {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cp-type-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+.cp-type-btn:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+.cp-type-btn.active {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.cp-submit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cp-char-count {
+  font-size: 11px;
+  color: var(--text-dimmer);
+}
+.cp-submit {
+  min-width: 100px;
+}
+
 /* ── Feed ── */
 .community-feed {
   display: flex;
@@ -224,6 +320,7 @@
   border-radius: 100px;
   font-weight: 600;
   letter-spacing: 0.5px;
+  text-transform: capitalize;
 }
 .fc-time {
   font-size: 11px;
@@ -249,10 +346,13 @@
   color: var(--text);
   font-weight: 500;
   margin-bottom: 10px;
+  line-height: 1.5;
+  word-break: break-word;
 }
 .fc-actions {
   display: flex;
   gap: 12px;
+  margin-bottom: 8px;
 }
 .fc-like,
 .fc-comment,
@@ -287,6 +387,179 @@
   100% {
     transform: scale(1);
   }
+}
+
+/* ── Comment Section ── */
+.comment-section {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+.cs-list {
+  margin-bottom: 10px;
+}
+.cs-comment {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  align-items: flex-start;
+}
+.cs-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cs-body {
+  flex: 1;
+  font-size: 13px;
+}
+.cs-name {
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-right: 8px;
+}
+.cs-text {
+  color: var(--text);
+  word-break: break-word;
+}
+.cs-time {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dimmer);
+  margin-top: 2px;
+}
+.cs-expand {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  padding: 4px 0;
+  opacity: 0.8;
+}
+.cs-expand:hover {
+  opacity: 1;
+}
+.cs-form {
+  display: flex;
+  gap: 8px;
+}
+.cs-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 8px 16px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.cs-input:focus {
+  border-color: var(--green-border);
+}
+.cs-input::placeholder {
+  color: var(--text-dimmer);
+}
+.cs-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--green);
+  border: none;
+  color: #0a0a0a;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.cs-send:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 16px rgba(170, 255, 0, 0.3);
+}
+.cs-send:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Load More Button ── */
+.load-more-btn {
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ── Skeleton Loaders ── */
+.skeleton-pulse {
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.skeleton-card {
+  pointer-events: none;
+}
+
+/* ── Empty State ── */
+.community-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  margin-top: 12px;
+}
+.ce-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  animation: emptyBounce 2s ease infinite;
+}
+@keyframes emptyBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.ce-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--text-bright);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.ce-sub {
+  font-size: 14px;
+  color: var(--text-dim);
+  font-weight: 300;
 }
 
 /* ── Challenges ── */
@@ -592,7 +865,6 @@
 .lb-you {
   background: linear-gradient(90deg, rgba(170, 255, 0, 0.06), rgba(170, 255, 0, 0.02)) !important;
   border: 1px solid var(--green-border) !important;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   position: relative;
 }
 .lb-you::before {
@@ -653,6 +925,13 @@
   .fc-avatar-ring {
     width: 36px;
     height: 36px;
+  }
+  .cp-types {
+    gap: 4px;
+  }
+  .cp-type-btn {
+    padding: 4px 10px;
+    font-size: 11px;
   }
 }
 @media (max-width: 480px) {
